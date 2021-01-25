@@ -1,0 +1,3 @@
+[submodule "subprojects/rodos"]
+	path = subprojects/rodos
+	url = https://gitlab.lrz.de/move/software/rodos.git
