@@ -80,13 +80,13 @@ public:
     Connections() = default;
 
     ~Connections() {
-        for (auto i = 0; i < 1; i++) {
-            //delete (reinterpret_cast<Connection *>(connections) + i);
+        for (size_t i = 0; i < num_connections; i++) {
+            (reinterpret_cast<Connection *>(connections) + i)->~Connection();
         }
     }
 
     auto get_connection(size_t i) -> Connection * override {
-        if (i >= num_connections) {
+        if (num_connections <= i) {
             return nullptr;
         }
 
