@@ -1,7 +1,8 @@
 #ifndef SPACE_TCP_ENDPOINT_HPP
 #define SPACE_TCP_ENDPOINT_HPP
 
-#include "connection.hpp"
+#include "connection/connection.hpp"
+#include "connection/connections.hpp"
 
 namespace space_tcp {
 
