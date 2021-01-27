@@ -5,6 +5,8 @@ namespace space_tcp {
 
 class ConnectionManager {
 public:
+    virtual ~ConnectionManager() = default;
+
     virtual auto get_connection(size_t i) -> Connection * = 0;
 
     virtual auto create_connection(uint8_t *buffer, size_t len, uint8_t rx_port, uint8_t tx_port,
@@ -14,9 +16,7 @@ public:
 template<typename std::size_t S>
 class alignas(Connection) Connections : public ConnectionManager {
 public:
-    Connections() = default;
-
-    ~Connections() {
+    ~Connections() override {
         for (size_t i = 0; i < num_connections; i++) {
             (reinterpret_cast<Connection *>(connections) + i)->~Connection();
         }
