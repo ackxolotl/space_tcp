@@ -3,9 +3,9 @@
 
 namespace space_tcp {
 
-class ConnectionManager {
+class ConnectionStorage {
 public:
-    virtual ~ConnectionManager() = default;
+    virtual ~ConnectionStorage() = default;
 
     virtual auto get_connection(size_t i) -> Connection * = 0;
 
@@ -14,7 +14,7 @@ public:
 };
 
 template<typename std::size_t S>
-class alignas(Connection) Connections : public ConnectionManager {
+class alignas(Connection) Connections : public ConnectionStorage {
 public:
     ~Connections() override {
         for (size_t i = 0; i < num_connections; i++) {

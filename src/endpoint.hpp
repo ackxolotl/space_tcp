@@ -10,7 +10,7 @@ class TcpEndpoint {
 public:
     // buffer should have the (maximum) size of one S3TP packet
     static auto
-    create(uint8_t *buffer, size_t len, ConnectionManager *connections, NetworkInterface &nif) -> TcpEndpoint {
+    create(uint8_t *buffer, size_t len, ConnectionStorage *connections, NetworkInterface &nif) -> TcpEndpoint {
         return {buffer, len, connections, nif};
     }
 
@@ -38,14 +38,14 @@ public:
     }
 
 private:
-    TcpEndpoint(uint8_t *buffer, size_t len, ConnectionManager *connections, NetworkInterface &network) : tcp_buffer{
+    TcpEndpoint(uint8_t *buffer, size_t len, ConnectionStorage *connections, NetworkInterface &network) : tcp_buffer{
             buffer}, buffer_len{len}, connections{connections}, network{network} {};
 
     uint8_t *tcp_buffer;
     size_t buffer_len;
 
     // list of connections
-    ConnectionManager *connections;
+    ConnectionStorage *connections;
 
     NetworkInterface &network;
 };

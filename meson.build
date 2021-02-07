@@ -45,6 +45,8 @@ target_file_ext = subproject('rodos').get_variable('target_file_ext')
 #interface_tests = []
 #serial_devices = ['0','1','2','3','4','5','6','7','8','9','10','11', 'space_tcpv2_3','vorago_power_measurement_l4']
 
+add_project_arguments('-D__rodos__', language : 'cpp')
+
 space_tcp_inc = include_directories('include', 'src')
 space_tcp_src = files('src/space_tcp.cpp')
 

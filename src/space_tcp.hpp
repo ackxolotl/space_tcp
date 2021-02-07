@@ -7,7 +7,7 @@
 
 #include "network/network.hpp"
 
-#ifdef __linux__
+#ifndef __rodos__
 
 #include "network/tun.hpp"
 
@@ -21,7 +21,7 @@
 
 namespace space_tcp {
 
-#ifdef __linux__
+#ifndef __rodos__
 
 template<typename std::size_t S>
 auto create_tun_interface(uint8_t (&buffer)[S]) -> TunInterface {
