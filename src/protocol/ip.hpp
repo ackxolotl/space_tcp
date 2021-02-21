@@ -153,7 +153,7 @@ public:
 
     auto set_payload(uint8_t *payload, size_t length) {
         if (ihl() * 4 + length > len) {
-            // too long for this packet buffer, throw exception?
+            // FIXME: too long for this packet buffer, throw exception?
         }
 
         auto data = buffer + ihl() * 4;

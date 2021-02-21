@@ -19,7 +19,8 @@ namespace space_tcp {
 class TunInterface : public NetworkInterface {
 public:
     // buffer should have the (maximum) size of one S3TP packet + header of the network protocol
-    static auto create(uint8_t *buffer, size_t len, const std::string &dev_name = {}) -> TunInterface {
+    static auto
+    create(uint8_t *buffer, size_t len, ssize_t timeout = 5000, const std::string &dev_name = {}) -> TunInterface {
         struct ifreq ifr{};
         int fd;
 
@@ -44,13 +45,41 @@ public:
             exit(-1);
         }
 
-        return {ifr.ifr_name, fd, buffer, len};
+        return {ifr.ifr_name, fd, buffer, len, timeout};
     }
 
-    auto receive(uint8_t *buffer, size_t len, size_t timeout) -> ssize_t override {
+    auto receive(uint8_t *buffer, size_t len) -> ssize_t override {
         if (fd < 0) {
             std::cerr << "file descriptor invalid" << std::endl;
             exit(1);
+        }
+
+        fd_set input;
+        FD_ZERO(&input);
+        FD_SET(fd, &input);
+
+        struct timeval to{
+                .tv_sec = timeout / 1000,          // milliseconds to seconds
+                .tv_usec = timeout % 1000 * 1000   // milliseconds to microseconds
+        };
+
+        int n;
+        if (timeout == -1) {
+            n = select(fd + 1, &input, NULL, NULL, NULL);
+        } else {
+            n = select(fd + 1, &input, NULL, NULL, &to);
+        }
+
+        if (n == -1) {
+            std::cerr << "something went wrong :-/" << std::endl;
+
+            return -1;
+        } else if (n == 0) {
+            std::cerr << "timeout" << std::endl;
+
+            return 0;
+        } else {
+            std::cerr << "no timeout, we should have received something!" << std::endl;
         }
 
         // buffer should be at least the MTU size of the interface, eg 1500 bytes
@@ -76,7 +105,7 @@ public:
         return -1;
     }
 
-    auto send(const uint8_t *buffer, size_t len, size_t timeout) -> ssize_t override {
+    auto send(const uint8_t *buffer, size_t len) -> ssize_t override {
         // write header of Network protocol into tun_buffer
 
         // append data from buffer with size len to header
@@ -86,13 +115,17 @@ public:
     }
 
 private:
-    TunInterface(std::string name, int fd, uint8_t *const buffer, size_t len) : name{std::move(name)}, fd{fd},
-                                                                                tun_buffer{buffer}, buffer_len{len} {};
+    TunInterface(std::string name, int fd, uint8_t *const buffer, size_t len, ssize_t timeout) : name{std::move(name)},
+                                                                                                 fd{fd},
+                                                                                                 tun_buffer{buffer},
+                                                                                                 buffer_len{len},
+                                                                                                 timeout{timeout} {};
 
     const std::string name;
     const int fd;
     uint8_t *const tun_buffer;
     const size_t buffer_len;
+    ssize_t timeout;
 };
 
 } // namespace space_tcp

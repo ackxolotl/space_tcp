@@ -2,7 +2,7 @@
 #define SPACE_TCP_ENDPOINT_HPP
 
 #include "connection/connection.hpp"
-#include "connection/connections.hpp"
+#include "connection/connection_manager.hpp"
 
 namespace space_tcp {
 
@@ -10,15 +10,15 @@ class TcpEndpoint {
 public:
     // buffer should have the (maximum) size of one S3TP packet
     static auto
-    create(uint8_t *buffer, size_t len, ConnectionStorage *connections, NetworkInterface &nif) -> TcpEndpoint {
+    create(uint8_t *buffer, size_t len, ConnectionManager *connections, NetworkInterface &nif) -> TcpEndpoint {
         return {buffer, len, connections, nif};
     }
 
-    auto receive(uint8_t *buffer, size_t len, size_t timeout) -> ssize_t {
+    auto receive() -> ssize_t {
         std::cout << "tcp endpoint receive" << std::endl;
 
         // receive some data from network
-        if (network.receive(&*tcp_buffer, buffer_len, timeout / 10) == -1) {
+        if (network.receive(&*tcp_buffer, buffer_len) == -1) {
             // could not receive data
             return -1;
         }
@@ -38,14 +38,14 @@ public:
     }
 
 private:
-    TcpEndpoint(uint8_t *buffer, size_t len, ConnectionStorage *connections, NetworkInterface &network) : tcp_buffer{
+    TcpEndpoint(uint8_t *buffer, size_t len, ConnectionManager *connections, NetworkInterface &network) : tcp_buffer{
             buffer}, buffer_len{len}, connections{connections}, network{network} {};
 
     uint8_t *tcp_buffer;
     size_t buffer_len;
 
     // list of connections
-    ConnectionStorage *connections;
+    ConnectionManager *connections;
 
     NetworkInterface &network;
 };

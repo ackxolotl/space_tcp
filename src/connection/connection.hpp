@@ -36,7 +36,7 @@ public:
         std::cout << "tcp connection receive" << std::endl;
 
         // receive some data from S3TP endpoint
-        if (endpoint.receive(con_buffer, 5, timeout / 10) == -1) {
+        if (endpoint.receive() == -1) {
             // could not receive data
             return -1;
         }

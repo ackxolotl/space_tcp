@@ -1,11 +1,11 @@
-#ifndef SPACE_TCP_CONNECTIONS_HPP
-#define SPACE_TCP_CONNECTIONS_HPP
+#ifndef SPACE_TCP_CONNECTION_MANAGER_HPP
+#define SPACE_TCP_CONNECTION_MANAGER_HPP
 
 namespace space_tcp {
 
-class ConnectionStorage {
+class ConnectionManager {
 public:
-    virtual ~ConnectionStorage() = default;
+    virtual ~ConnectionManager() = default;
 
     virtual auto get_connection(size_t i) -> Connection * = 0;
 
@@ -14,7 +14,7 @@ public:
 };
 
 template<typename std::size_t S>
-class alignas(Connection) Connections : public ConnectionStorage {
+class alignas(Connection) Connections : public ConnectionManager {
 public:
     ~Connections() override {
         for (size_t i = 0; i < num_connections; i++) {
@@ -47,4 +47,4 @@ private:
 
 }
 
-#endif //SPACE_TCP_CONNECTIONS_HPP
+#endif //SPACE_TCP_CONNECTION_MANAGER_HPP

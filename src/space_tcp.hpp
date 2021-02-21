@@ -17,7 +17,7 @@
 
 #include "endpoint.hpp"
 #include "connection/connection.hpp"
-#include "connection/connections.hpp"
+#include "connection/connection_manager.hpp"
 
 namespace space_tcp {
 
