@@ -20,3 +20,7 @@ add_library(space_tcp src/space_tcp.cpp)
 target_include_directories(space_tcp PUBLIC ${PROJECT_SOURCE_DIR}/include PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
 add_subdirectory(examples/linux)
+
+# Tests
+enable_testing()
+add_subdirectory(tests)
