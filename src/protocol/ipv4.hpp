@@ -1,5 +1,5 @@
-#ifndef SPACE_TCP_IP_HPP
-#define SPACE_TCP_IP_HPP
+#ifndef SPACE_TCP_IP_PACKET_HPP
+#define SPACE_TCP_IP_PACKET_HPP
 
 #ifndef __rodos__
 
@@ -11,9 +11,9 @@
 
 namespace space_tcp {
 
-class Ipv4 : public Protocol {
+class Ipv4Packet : public Protocol {
 public:
-    static auto create_unchecked(uint8_t *buffer, size_t len) -> Ipv4 {
+    static auto create_unchecked(uint8_t *buffer, size_t len) -> Ipv4Packet {
         return {buffer, len};
     }
 
@@ -142,7 +142,7 @@ public:
         buffer[15] = source_ip >> 24;
     }
 
-    auto dest_ip(uint32_t dest_ip) {
+    auto set_dest_ip(uint32_t dest_ip) {
         dest_ip = htonl(dest_ip);
 
         buffer[16] = dest_ip;
@@ -213,7 +213,7 @@ public:
     }
 
 private:
-    Ipv4(uint8_t *buffer, size_t len) : buffer{buffer}, len{len} {};
+    Ipv4Packet(uint8_t *buffer, size_t len) : buffer{buffer}, len{len} {};
 
     uint8_t *buffer;
     size_t len;
@@ -221,4 +221,4 @@ private:
 
 } // namespace space_tcp
 
-#endif //SPACE_TCP_IP_HPP
+#endif //SPACE_TCP_IP_PACKET_HPP
