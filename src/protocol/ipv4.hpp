@@ -34,11 +34,11 @@ public:
     }
 
     auto length() -> uint16_t {
-        return ntohs((buffer[3] << 8) + buffer[2]);
+        return ntohs(buffer[2] + (buffer[3] << 8));
     }
 
     auto identification() -> uint16_t {
-        return ntohs((buffer[5] << 8) + buffer[4]);
+        return ntohs(buffer[4] + (buffer[5] << 8));
     }
 
     auto flags() -> uint8_t {
@@ -46,7 +46,7 @@ public:
     }
 
     auto fragment_offset() -> uint16_t {
-        return ntohs((buffer[7] << 8) + (buffer[6] & 0x1f));
+        return ntohs((buffer[6] & 0x1f) + (buffer[7] << 8));
     }
 
     auto ttl() -> uint8_t {
@@ -58,15 +58,15 @@ public:
     }
 
     auto checksum() -> uint16_t {
-        return ntohs((buffer[11] << 8) + buffer[10]);
+        return ntohs(buffer[10] + (buffer[11] << 8));
     }
 
     auto source_ip() -> uint32_t {
-        return ntohl((buffer[15] << 24) + (buffer[14] << 16) + (buffer[13] << 8) + buffer[12]);
+        return ntohl(buffer[12] + (buffer[13] << 8) + (buffer[14] << 16) + (buffer[15] << 24));
     }
 
     auto dest_ip() -> uint32_t {
-        return ntohl((buffer[19] << 24) + (buffer[18] << 16) + (buffer[17] << 8) + buffer[16]);
+        return ntohl(buffer[16] + (buffer[17] << 8) + (buffer[18] << 16) + (buffer[19] << 24));
     }
 
     auto options() -> uint8_t * {
