@@ -1,3 +1,6 @@
 [submodule "subprojects/rodos"]
 	path = subprojects/rodos
 	url = https://gitlab.lrz.de/move/software/rodos.git
+[submodule "subprojects/tiny-AES-c"]
+	path = subprojects/tiny-AES-c
+	url = https://github.com/kokke/tiny-AES-c.git
