@@ -239,7 +239,7 @@ public:
 
         return true;
     }
-    
+
     auto initialize() {
         set_version(0x1);
         set_msg_type(0x1);
