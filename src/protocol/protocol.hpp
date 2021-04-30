@@ -6,11 +6,8 @@ namespace space_tcp {
 class Protocol {
 public:
     virtual ~Protocol() = default;
-
-private:
-
 };
 
-} // namespace space_tcp
+}  // namespace space_tcp
 
 #endif //SPACE_TCP_PROTOCOL_HPP

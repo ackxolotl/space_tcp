@@ -1,42 +1,73 @@
 #ifndef SPACE_TCP_SHA256_HPP
 #define SPACE_TCP_SHA256_HPP
 
-// Code taken and slightly modified from https://github.com/System-Glitch/SHA256
+// Code taken and adapted from https://github.com/unixpickle/LibOrange/blob/master/LibOrange/hmac-sha256.c
 
-/*******************************************************************************
-
-MIT License
-Copyright (c) 2021 Jérémy LAMBERT (SystemGlitch)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-***************************************************************************/
-
-// FIXME: only on Linux!
-#include <sstream>
-#include <iomanip>
+/*
+ * Copyright 2006 Apple Computer, Inc.  All rights reserved.
+ *
+ * iTunes U Sample Code License
+ * IMPORTANT:  This Apple software is supplied to you by Apple Computer, Inc. ("Apple")
+ * in consideration of your agreement to the following terms, and your use,
+ * installation, modification or distribution of this Apple software constitutes
+ * acceptance of these terms.  If you do not agree with these terms, please do not use,
+ * install, modify or distribute this Apple software.
+ *
+ * In consideration of your agreement to abide by the following terms and subject to
+ * these terms, Apple grants you a personal, non-exclusive, non-transferable license,
+ * under Apple's copyrights in this original Apple software (the "Apple Software"):
+ *
+ * (a) to internally use, reproduce, modify and internally distribute the Apple
+ * Software, with or without modifications, in source and binary forms, within your
+ * educational organization or internal campus network for the sole purpose of
+ * integrating Apple's iTunes U software with your internal campus network systems; and
+ *
+ * (b) to redistribute the Apple Software to other universities or educational
+ * organizations, with or without modifications, in source and binary forms, for the
+ * sole purpose of integrating Apple's iTunes U software with their internal campus
+ * network systems; provided that the following conditions are met:
+ *
+ * 	-  If you redistribute the Apple Software in its entirety and without
+ *     modifications, you must retain the above copyright notice, this entire license
+ *     and the disclaimer provisions in all such redistributions of the Apple Software.
+ * 	-  If you modify and redistribute the Apple Software, you must indicate that you
+ *     have made changes to the Apple Software, and you must retain the above
+ *     copyright notice, this entire license and the disclaimer provisions in all
+ *     such redistributions of the Apple Software and/or derivatives thereof created
+ *     by you.
+ *     -  Neither the name, trademarks, service marks or logos of Apple may be used to
+ *     endorse or promote products derived from the Apple Software without specific
+ *     prior written permission from Apple.
+ *
+ * Except as expressly stated above, no other rights or licenses, express or implied,
+ * are granted by Apple herein, including but not limited to any patent rights that may
+ * be infringed by your derivative works or by other works in which the Apple Software
+ * may be incorporated.  THE APPLE SOFTWARE IS PROVIDED BY APPLE ON AN "AS IS" BASIS.
+ * APPLE MAKES NO WARRANTIES, EXPRESS OR IMPLIED, AND HEREBY DISCLAIMS ALL WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION THE IMPLIED WARRANTIES OF NON-INFRINGEMENT,
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE
+ * OR ITS USE AND OPERATION ALONE OR IN COMBINATION WITH YOUR PRODUCTS OR SYSTEMS.
+ * APPLE IS NOT OBLIGATED TO PROVIDE ANY MAINTENANCE, TECHNICAL OR OTHER SUPPORT FOR
+ * THE APPLE SOFTWARE, OR TO PROVIDE ANY UPDATES TO THE APPLE SOFTWARE.  IN NO EVENT
+ * SHALL APPLE BE LIABLE FOR ANY DIRECT, SPECIAL, INDIRECT, INCIDENTAL OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION, MODIFICATION AND/OR DISTRIBUTION
+ * OF THE APPLE SOFTWARE, HOWEVER CAUSED AND WHETHER UNDER THEORY OF CONTRACT, TORT
+ * (INCLUDING NEGLIGENCE), STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Rev.  120806
+ *
+ * This source code file contains a self-contained ANSI C program with no
+ * external dependencies except for standard ANSI C libraries. On Mac OS X, it
+ * can be compiled and run by executing the following commands in a terminal
+ * window:
+ *     gcc -o seconds seconds.c
+ *     ./seconds
+ */
 
 namespace space_tcp {
-
-// CODE
-// https://foss.heptapod.net/pypy/pypy/-/blob/branch/default/lib_pypy/_sha256.py
-// https://github.com/System-Glitch/SHA256/blob/master/include/SHA256.h
 
 class Sha256 {
 public:
@@ -44,146 +75,124 @@ public:
         return {};
     }
 
-    // FIXME: only on Linux!
-    void update(const std::string &data) {
-        update(reinterpret_cast<const uint8_t *> (data.c_str()), data.size());
-    }
-
-    void update(const uint8_t *data, size_t len) {
-        for (size_t i = 0; i < len; i++) {
-            m_data[m_blocklen++] = data[i];
-            if (m_blocklen == 64) {
-                transform();
-
-                m_bitlen += 512;
-                m_blocklen = 0;
-            }
-        }
-    }
-
-    // FIXME: return reference?
-    auto digest() -> uint8_t * {
-        pad();
-        revert();
-
+    auto get_hash() -> uint8_t * {
         return hash;
     }
 
-    // FIXME: only on Linux!
-    auto digest_as_str() -> std::string {
-        std::stringstream s;
-        s << std::setfill('0') << std::hex;
-
-        pad();
-        revert();
-
-        for (unsigned char i : hash) {
-            s << std::setw(2) << static_cast<unsigned int>(i);
+    void update(const uint8_t *msg, size_t len) {
+        int i, j;
+        // Add the len of the received msg, counted in
+        // bytes, to the total len of the messages hashed to
+        // date, counted in bits and stored in 8 separate bytes.
+        for (i = 7; i >= 0; --i) {
+            int bits;
+            if (i == 7) {
+                bits = static_cast<int>(len << 3);
+            } else if (i == 0 || i == 1 || i == 2) {
+                bits = 0;
+            } else {
+                bits = static_cast<int>(len >> (53 - 8 * i));
+            }
+            bits &= 0xff;
+            if (this->length[i] + bits > 0xff) {
+                for (j = i - 1; j >= 0 && this->length[j]++ == 0xff; --j);
+            }
+            this->length[i] += bits;
         }
-
-        return s.str();
-    }
-
-private:
-    static auto inline rotr(uint32_t x, uint32_t n) -> uint32_t {
-        return (x >> n) | (x << (32 - n));
-    }
-
-    static auto inline choose(uint32_t e, uint32_t f, uint32_t g) -> uint32_t {
-        return (e & f) ^ (~e & g);
-    }
-
-    static auto inline majority(uint32_t a, uint32_t b, uint32_t c) -> uint32_t {
-        return (a & (b | c)) | (b & c);
-    }
-
-    static auto inline sig0(uint32_t x) -> uint32_t {
-        return rotr(x, 7) ^ rotr(x, 18) ^ (x >> 3);
-    }
-
-    static auto inline sig1(uint32_t x) -> uint32_t {
-        return rotr(x, 17) ^ rotr(x, 19) ^ (x >> 10);
-    }
-
-    void transform() {
-        uint32_t maj, xorA, ch, xorE, sum, newA, newE, m[64];
-        uint32_t state[8];
-
-        for (uint8_t i = 0, j = 0; i < 16; i++, j += 4) {
-            m[i] = (m_data[j] << 24) | (m_data[j + 1] << 16) | (m_data[j + 2] << 8) | (m_data[j + 3]);
-        }
-
-        for (uint8_t k = 16; k < 64; k++) {
-            m[k] = sig1(m[k - 2]) + m[k - 7] + sig0(m[k - 15]) + m[k - 16];
-        }
-
-        for (uint8_t i = 0; i < 8; i++) {
-            state[i] = m_state[i];
-        }
-
-        for (uint8_t i = 0; i < 64; i++) {
-            maj = majority(state[0], state[1], state[2]);
-            xorA = rotr(state[0], 2) ^ rotr(state[0], 13) ^ rotr(state[0], 22);
-
-            ch = choose(state[4], state[5], state[6]);
-
-            xorE = rotr(state[4], 6) ^ rotr(state[4], 11) ^ rotr(state[4], 25);
-
-            sum = m[i] + K[i] + state[7] + ch + xorE;
-            newA = xorA + maj + sum;
-            newE = state[3] + sum;
-
-            state[7] = state[6];
-            state[6] = state[5];
-            state[5] = state[4];
-            state[4] = newE;
-            state[3] = state[2];
-            state[2] = state[1];
-            state[1] = state[0];
-            state[0] = newA;
-        }
-
-        for (uint8_t i = 0; i < 8; i++) {
-            m_state[i] += state[i];
-        }
-    }
-
-    void pad() {
-        uint64_t i = m_blocklen;
-        uint8_t end = m_blocklen < 56 ? 56 : 64;
-
-        m_data[i++] = 0x80;
-        while (i < end) {
-            m_data[i++] = 0x00;
-        }
-
-        if (m_blocklen >= 56) {
-            transform();
-            memset(m_data, 0, 56);
-        }
-
-        m_bitlen += m_blocklen * 8;
-        m_data[63] = m_bitlen;
-        m_data[62] = m_bitlen >> 8;
-        m_data[61] = m_bitlen >> 16;
-        m_data[60] = m_bitlen >> 24;
-        m_data[59] = m_bitlen >> 32;
-        m_data[58] = m_bitlen >> 40;
-        m_data[57] = m_bitlen >> 48;
-        m_data[56] = m_bitlen >> 56;
-
-        transform();
-    }
-
-    void revert() {
-        for (uint8_t i = 0; i < 4; i++) {
-            for (uint8_t j = 0; j < 8; j++) {
-                hash[i + (j * 4)] = (m_state[j] >> (24 - i * 8)) & 0x000000ff;
+        // Add the received msg to the SHA buffer, updating the
+        // hash at each block (each time the buffer is filled).
+        while (len > 0) {
+            // Find the index in the SHA buffer at which to
+            // append what's left of the received msg.
+            int index = this->length[6] % 2 * 32 + this->length[7] / 8;
+            index = static_cast<int>((index + 64 - len % 64) % 64);
+            // Append the received msg bytes to the SHA buffer until
+            // we run out of msg bytes or until the buffer is filled.
+            for (; len > 0 && index < 64; ++msg, ++index, --len) {
+                this->buffer[index / 4] |= *msg << (24 - index % 4 * 8);
+            }
+            // Update the hash with the buffer contents if the buffer is full.
+            if (index == 64) {
+                // Update the hash with a block of msg content. See FIPS 180-2
+                // (<csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf>)
+                // for a description of and details on the algorithm used here.
+                uint32_t w[64], a, b, c, d, e, f, g, h;
+                int t;
+                for (t = 0; t < 16; ++t) {
+                    w[t] = this->buffer[t];
+                    this->buffer[t] = 0;
+                }
+                for (t = 16; t < 64; ++t) {
+                    uint32_t s0, s1;
+                    s0 = (w[t - 15] >> 7 | w[t - 15] << 25);
+                    s0 ^= (w[t - 15] >> 18 | w[t - 15] << 14);
+                    s0 ^= (w[t - 15] >> 3);
+                    s1 = (w[t - 2] >> 17 | w[t - 2] << 15);
+                    s1 ^= (w[t - 2] >> 19 | w[t - 2] << 13);
+                    s1 ^= (w[t - 2] >> 10);
+                    w[t] = (s1 + w[t - 7] + s0 + w[t - 16]) & 0xffffffffU;
+                }
+                a = this->state[0];
+                b = this->state[1];
+                c = this->state[2];
+                d = this->state[3];
+                e = this->state[4];
+                f = this->state[5];
+                g = this->state[6];
+                h = this->state[7];
+                for (t = 0; t < 64; ++t) {
+                    uint32_t e0, e1, t1, t2;
+                    e0 = (a >> 2 | a << 30);
+                    e0 ^= (a >> 13 | a << 19);
+                    e0 ^= (a >> 22 | a << 10);
+                    e1 = (e >> 6 | e << 26);
+                    e1 ^= (e >> 11 | e << 21);
+                    e1 ^= (e >> 25 | e << 7);
+                    t1 = h + e1 + ((e & f) ^ (~e & g)) + k[t] + w[t];
+                    t2 = e0 + ((a & b) ^ (a & c) ^ (b & c));
+                    h = g;
+                    g = f;
+                    f = e;
+                    e = d + t1;
+                    d = c;
+                    c = b;
+                    b = a;
+                    a = t1 + t2;
+                }
+                this->state[0] = (this->state[0] + a) & 0xffffffffU;
+                this->state[1] = (this->state[1] + b) & 0xffffffffU;
+                this->state[2] = (this->state[2] + c) & 0xffffffffU;
+                this->state[3] = (this->state[3] + d) & 0xffffffffU;
+                this->state[4] = (this->state[4] + e) & 0xffffffffU;
+                this->state[5] = (this->state[5] + f) & 0xffffffffU;
+                this->state[6] = (this->state[6] + g) & 0xffffffffU;
+                this->state[7] = (this->state[7] + h) & 0xffffffffU;
             }
         }
     }
 
-    static constexpr uint32_t K[64] = {
+    void finalize(const uint8_t *msg, size_t len) {
+        int i;
+        uint8_t terminator[64 + 8] = {0x80};
+        // Hash the final msg bytes if necessary.
+        if (len > 0) update(msg, len);
+        // Create a terminator that includes a stop bit, padding, and
+        // the the total msg len. See FIPS 180-2 for details.
+        len = static_cast<size_t>(64 - this->length[6] % 2 * 32 - this->length[7] / 8);
+        if (len < 9) len += 64;
+        for (i = 0; i < 8; ++i) terminator[len - 8 + i] = this->length[i];
+        // Hash the terminator to finalize the msg digest.
+        update(terminator, len);
+        // Extract the msg digest.
+        for (i = 0; i < 32; ++i) {
+            this->hash[i] = static_cast<uint8_t>((this->state[i / 4] >> (24 - 8 * (i % 4))) & 0xff);
+        }
+    }
+
+private:
+    Sha256() = default;
+
+    static constexpr uint32_t k[64] = {
             0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
             0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
             0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
@@ -202,18 +211,16 @@ private:
             0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
     };
 
-    uint8_t m_data[64]{};
-    uint32_t m_blocklen{};
-    uint64_t m_bitlen{};
-
-    uint32_t m_state[8] = {
+    uint32_t state[8] = {
             0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
             0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
     };
 
     uint8_t hash[32]{};
+    uint32_t buffer[16]{};
+    uint8_t length[8]{};
 };
 
-} // namespace space_tcp
+}  // namespace space_tcp
 
 #endif //SPACE_TCP_SHA256_HPP

@@ -4,10 +4,12 @@
 
 class Ipv4Test : public ::testing::Test {
 public:
-    Ipv4Test() : packet_1{space_tcp::Ipv4Packet::create_unchecked(packet_1_data, sizeof(packet_1_data))} {}
+    Ipv4Test() : packet_1{space_tcp::Ipv4Packet::create_unchecked(packet_1_data, sizeof(packet_1_data))},
+                 packet_2{space_tcp::Ipv4Packet::create_unchecked(packet_2_data, sizeof(packet_2_data))} {}
 
 protected:
     space_tcp::Ipv4Packet packet_1;
+    space_tcp::Ipv4Packet packet_2;
 
     uint8_t packet_1_data[195] = {
             0x45, 0x00, 0x00, 0xc3, 0x72, 0xdb, 0x40, 0x00,
@@ -35,6 +37,18 @@ protected:
             0x2e, 0x34, 0x33, 0x38, 0x39, 0x2e, 0x31, 0x32,
             0x38, 0x20, 0x4c, 0x69, 0x6e, 0x75, 0x78, 0x0d,
             0x0a, 0x0d, 0x0a
+    };
+
+    uint8_t packet_2_data[68] = {
+            0x45, 0x00, 0x00, 0x44, 0x38, 0xab, 0x40, 0x00,
+            0x01, 0x11, 0x49, 0x02, 0x0a, 0x00, 0x0d, 0x01,
+            0xe0, 0x00, 0x00, 0xfb, 0x14, 0xe9, 0x14, 0xe9,
+            0x00, 0x30, 0x93, 0xa7, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x0b, 0x5f, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65,
+            0x63, 0x61, 0x73, 0x74, 0x04, 0x5f, 0x74, 0x63,
+            0x70, 0x05, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x00,
+            0x00, 0x0c, 0x00, 0x01
     };
 };
 
@@ -64,6 +78,7 @@ TEST_F(Ipv4Test, Identification) {
 
 TEST_F(Ipv4Test, Flags) {
     EXPECT_EQ(0x02, packet_1.flags());
+    EXPECT_EQ(0x02, packet_2.flags());
 }
 
 TEST_F(Ipv4Test, FragmentOffset) {
@@ -80,18 +95,77 @@ TEST_F(Ipv4Test, Protocol) {
 
 TEST_F(Ipv4Test, Checksum) {
     EXPECT_EQ(0xff53, packet_1.checksum());
+    EXPECT_EQ(0x4902, packet_2.checksum());
 }
 
 TEST_F(Ipv4Test, SourceIP) {
-    EXPECT_EQ(0xa000d01, packet_1.source_ip());
+    EXPECT_EQ(0xa000d01, packet_1.src_ip());
 }
 
 TEST_F(Ipv4Test, DestinationIP) {
-    EXPECT_EQ(0xeffffffa, packet_1.dest_ip());
+    EXPECT_EQ(0xeffffffa, packet_1.dst_ip());
 }
 
 TEST_F(Ipv4Test, Payload) {
     for (int i = 20; i < packet_1.length(); i++) {
         ASSERT_EQ(packet_1_data[i], packet_1.payload()[i - 20]);
     }
+}
+
+TEST_F(Ipv4Test, SetFlags) {
+    packet_1.set_flags(0x0);
+    EXPECT_EQ(0x0, packet_1.flags());
+
+    packet_1.set_flags(0x3);
+    EXPECT_EQ(0x3, packet_1.flags());
+}
+
+TEST_F(Ipv4Test, SetSourceIp) {
+    packet_1.set_src_ip(0x12345678);
+    EXPECT_EQ(0x12345678, packet_1.src_ip());
+
+    packet_1.set_src_ip(0x0);
+    EXPECT_EQ(0x0, packet_1.src_ip());
+}
+
+TEST_F(Ipv4Test, SetDestinationIp) {
+    packet_1.set_dst_ip(0x12345678);
+    EXPECT_EQ(0x12345678, packet_1.dst_ip());
+
+    packet_1.set_dst_ip(0x0);
+    EXPECT_EQ(0x0, packet_1.dst_ip());
+}
+
+TEST_F(Ipv4Test, GetAndSetFlags) {
+    auto flags = packet_1.flags();
+    packet_1.set_flags(flags);
+    EXPECT_EQ(flags, packet_1.flags());
+}
+
+TEST_F(Ipv4Test, GetAndSetSourceIP) {
+    auto ip = packet_1.src_ip();
+    packet_1.set_src_ip(ip);
+    EXPECT_EQ(ip, packet_1.src_ip());
+}
+
+TEST_F(Ipv4Test, GetAndSetDestinationIP) {
+    auto ip = packet_1.dst_ip();
+    packet_1.set_dst_ip(ip);
+    EXPECT_EQ(ip, packet_1.dst_ip());
+}
+
+TEST_F(Ipv4Test, GetAndSetChecksum) {
+    auto checksum = packet_1.checksum();
+    packet_1.set_checksum(checksum);
+    EXPECT_EQ(checksum, packet_1.checksum());
+}
+
+TEST_F(Ipv4Test, UpdateChecksum) {
+    auto checksum = packet_1.checksum();
+    packet_1.update_checksum();
+    EXPECT_EQ(checksum, packet_1.checksum());
+
+    checksum = packet_2.checksum();
+    packet_2.update_checksum();
+    EXPECT_EQ(checksum, packet_2.checksum());
 }

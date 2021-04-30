@@ -1,12 +1,9 @@
 #ifndef SPACE_TCP_IP_PACKET_HPP
 #define SPACE_TCP_IP_PACKET_HPP
 
-#ifndef __rodos__
-
 #include <arpa/inet.h>
 
-#endif
-
+#include "space_tcp/log.hpp"
 #include "protocol.hpp"
 
 namespace space_tcp {
@@ -22,7 +19,7 @@ public:
     }
 
     auto ihl() -> uint8_t {
-        return buffer[0] & 0xf;
+        return static_cast<uint8_t>(buffer[0] & 0xf);
     }
 
     auto dscp() -> uint8_t {
@@ -30,7 +27,7 @@ public:
     }
 
     auto ecn() -> uint8_t {
-        return buffer[1] & 0x3;
+        return static_cast<uint8_t>(buffer[1] & 0x3);
     }
 
     auto length() -> uint16_t {
@@ -46,7 +43,7 @@ public:
     }
 
     auto fragment_offset() -> uint16_t {
-        return ntohs((buffer[6] & 0x1f) + (buffer[7] << 8));
+        return ntohs(static_cast<uint16_t>((buffer[6] & 0x1f) + (buffer[7] << 8)));
     }
 
     auto ttl() -> uint8_t {
@@ -61,11 +58,11 @@ public:
         return ntohs(buffer[10] + (buffer[11] << 8));
     }
 
-    auto source_ip() -> uint32_t {
+    auto src_ip() -> uint32_t {
         return ntohl(buffer[12] + (buffer[13] << 8) + (buffer[14] << 16) + (buffer[15] << 24));
     }
 
-    auto dest_ip() -> uint32_t {
+    auto dst_ip() -> uint32_t {
         return ntohl(buffer[16] + (buffer[17] << 8) + (buffer[18] << 16) + (buffer[19] << 24));
     }
 
@@ -96,26 +93,26 @@ public:
     auto set_length(uint16_t length) {
         length = htons(length);
 
-        buffer[2] = length;
-        buffer[3] = length >> 8;
+        buffer[2] = static_cast<uint8_t>(length);
+        buffer[3] = static_cast<uint8_t>(length >> 8);
     }
 
     auto set_identification(uint16_t identification) {
         identification = htons(identification);
 
-        buffer[4] = identification;
-        buffer[5] = identification >> 8;
+        buffer[4] = static_cast<uint8_t>(identification);
+        buffer[5] = static_cast<uint8_t>(identification >> 8);
     }
 
     auto set_flags(uint8_t flags) {
-        buffer[6] = (buffer[6] & 0x1f) + (flags << 5);
+        buffer[6] = static_cast<uint8_t>((buffer[6] & 0x1f) + (flags << 5));
     }
 
     auto set_fragment_offset(uint16_t fragment_offset) {
         fragment_offset = htons(fragment_offset);
 
-        buffer[6] = (buffer[6] & 0xe0) + (fragment_offset & 0x1f);
-        buffer[7] = fragment_offset >> 8;
+        buffer[6] = static_cast<uint8_t>((buffer[6] & 0xe0) + (fragment_offset & 0x1f));
+        buffer[7] = static_cast<uint8_t>(fragment_offset >> 8);
     }
 
     auto set_ttl(uint8_t ttl) {
@@ -129,32 +126,35 @@ public:
     auto set_checksum(uint16_t checksum) {
         checksum = htons(checksum);
 
-        buffer[10] = checksum;
-        buffer[11] = checksum >> 8;
+        buffer[10] = static_cast<uint8_t>(checksum);
+        buffer[11] = static_cast<uint8_t>(checksum >> 8);
     }
 
-    auto set_source_ip(uint32_t source_ip) {
-        source_ip = htonl(source_ip);
+    auto set_src_ip(uint32_t src_ip) {
+        src_ip = htonl(src_ip);
 
-        buffer[12] = source_ip;
-        buffer[13] = source_ip >> 8;
-        buffer[14] = source_ip >> 16;
-        buffer[15] = source_ip >> 24;
+        buffer[12] = static_cast<uint8_t>(src_ip);
+        buffer[13] = static_cast<uint8_t>(src_ip >> 8);
+        buffer[14] = static_cast<uint8_t>(src_ip >> 16);
+        buffer[15] = static_cast<uint8_t>(src_ip >> 24);
     }
 
-    auto set_dest_ip(uint32_t dest_ip) {
-        dest_ip = htonl(dest_ip);
+    auto set_dst_ip(uint32_t dst_ip) {
+        dst_ip = htonl(dst_ip);
 
-        buffer[16] = dest_ip;
-        buffer[17] = dest_ip >> 8;
-        buffer[18] = dest_ip >> 16;
-        buffer[19] = dest_ip >> 24;
+        buffer[16] = static_cast<uint8_t>(dst_ip);
+        buffer[17] = static_cast<uint8_t>(dst_ip >> 8);
+        buffer[18] = static_cast<uint8_t>(dst_ip >> 16);
+        buffer[19] = static_cast<uint8_t>(dst_ip >> 24);
     }
 
-    auto set_payload(uint8_t *payload, size_t length) {
-        if (ihl() * 4 + length > len) {
-            // FIXME: too long for this packet buffer, throw exception?
+    auto set_payload(const uint8_t *payload, size_t length) {
+        if (length + ihl() * 4 > len) {
+            warn("payload exceeds buffer size and will be truncated");
+            length = len - ihl() * 4;
         }
+
+        set_length(length + ihl() * 4);
 
         auto data = buffer + ihl() * 4;
         for (; length > 0; data++, payload++, length--) {
@@ -164,21 +164,22 @@ public:
 
     auto is_valid_packet() {
         if (version() != 0x4) {
+            warn("IP packet with invalid version number");
             return false;
         }
 
-        // header truncated?
         if (ihl() * 4 > len) {
+            warn("IPv4 packet with truncated header");
             return false;
         }
 
-        // payload truncated?
         if (length() > len) {
+            warn("IPv4 packet with truncated payload");
             return false;
         }
 
-        // checksum valid?
-        if (!calculate_checksum() != 0) {
+        if (calculate_checksum() != 0) {
+            warn("IPv4 packet with invalid checksum");
             return false;
         }
 
@@ -186,30 +187,57 @@ public:
     }
 
     auto calculate_checksum() -> uint16_t {
-        uint16_t header_len = ihl() * 4;
         uint8_t *data = buffer;
-        uint32_t acc = 0;
+        auto counter = ihl() * 4;
+        uint32_t sum = 0;
 
-        for (; header_len > 1; header_len -= 2, data += 2) {
-            acc += ((*data) << 8) + *(data + 1);
+        for (; counter > 1; data += 2, counter -= 2) {
+            sum += *data << 8 | *(data + 1);
         }
 
-        if (header_len > 0) {
-            acc += (*data) << 8;
+        if (counter) {
+            sum += *data << 8;
         }
 
-        acc = (acc >> 16) + (acc & 0x0000ffffUL);
-        if ((acc & 0xffff0000UL) != 0) {
-            acc = (acc >> 16) + (acc & 0x0000ffffUL);
+        while (sum >> 16) {
+            sum = (sum & 0xffff) + (sum >> 16);
         }
 
-        return ntohs(acc);
+        return static_cast<uint16_t>(static_cast<uint16_t>(sum) ^ 0xffff);
     }
 
     auto update_checksum() {
         set_checksum(0);
-        auto checksum = calculate_checksum();
-        set_checksum(checksum);
+        auto checksums = calculate_checksum();
+        set_checksum(checksums);
+    }
+
+    auto initialize() {
+        set_version(0x4);
+        set_ihl(0x5);
+        set_dscp(0);
+        set_ecn(0);
+        set_length(20);
+        set_flags(0x2); // don't fragment
+        set_fragment_offset(0);
+        set_ttl(0x40);
+        set_protocol(0x99); // use an unassigned IPv4 protocol number for S3TP
+    }
+
+    void print() {
+        std::cout << "Version:         " << +version() << std::endl;
+        std::cout << "IHL:             " << +ihl() << std::endl;
+        std::cout << "DSCP:            " << +dscp() << std::endl;
+        std::cout << "ECN:             " << +ecn() << std::endl;
+        std::cout << "Total length:    " << +length() << std::endl;
+        std::cout << "Identification:  " << std::hex << "0x" << +identification() << std::endl;
+        std::cout << "Flags:           " << std::hex << "0x" << +flags() << std::endl;
+        std::cout << "Fragment offset: " << std::hex << "0x" << +fragment_offset() << std::endl;
+        std::cout << "TTL:             " << std::hex << "0x" << +ttl() << std::endl;
+        std::cout << "Checksum:        " << std::hex << "0x" << +checksum() << std::endl;
+        std::cout << "Protocol:        " << std::hex << "0x" << +protocol() << std::endl;
+        std::cout << "Source IP:       " << std::hex << "0x" << +src_ip() << std::endl;
+        std::cout << "Destination IP:  " << std::hex << "0x" << +dst_ip() << std::endl;
     }
 
 private:
@@ -219,6 +247,6 @@ private:
     size_t len;
 };
 
-} // namespace space_tcp
+}  // namespace space_tcp
 
 #endif //SPACE_TCP_IP_PACKET_HPP

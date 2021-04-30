@@ -1,7 +1,7 @@
 #ifndef SPACE_TCP_LOG_HPP
 #define SPACE_TCP_LOG_HPP
 
-// TODO: RODOS version!
+// TODO(hal): RODOS version!
 
 #include <iostream>
 #include <cstring>
@@ -25,20 +25,16 @@ struct LogData {
 };
 
 template<typename Begin, typename Value>
-auto
-operator<<(LogData<Begin> begin, const Value &value) -> LogData<Pair<Begin, const Value &>> {
+auto operator<<(LogData<Begin> begin, const Value &value) -> LogData<Pair<Begin, const Value &>> {
     return {{begin.list, value}};
 }
 
 template<typename Begin, size_t n>
-auto
-operator<<(LogData<Begin> begin, const char (&value)[n]) -> LogData<Pair<Begin, const char *>> {
+auto operator<<(LogData<Begin> begin, const char (&value)[n]) -> LogData<Pair<Begin, const char *>> {
     return {{begin.list, value}};
 }
 
-inline void printList(std::ostream &os, None) {
-}
-
+inline void printList(std::ostream &os, None) {}
 
 template<typename Begin, typename Last>
 void printList(std::ostream &os, const Pair<Begin, Last> &data) {
@@ -80,6 +76,6 @@ void error(const char *file, int line, const char *function, const LogData<List>
 #define warn(x) (warn(__FILE__,__LINE__,__func__,LogData<None>() << x))
 #define error(x) (error(__FILE__,__LINE__,__func__,LogData<None>() << x))
 
-}
+}  // namespace space_tcp
 
 #endif //SPACE_TCP_LOG_HPP

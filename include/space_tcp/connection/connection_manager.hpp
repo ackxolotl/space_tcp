@@ -24,7 +24,7 @@ public:
 
     auto get_connection(size_t i) -> Connection * override {
         if (num_connections <= i) {
-            return nullptr;
+            error("cannot access connection " << i + 1 << " out of " << num_connections << " connections");
         }
 
         return reinterpret_cast<Connection *>(connections) + i;
@@ -33,7 +33,7 @@ public:
     auto create_connection(uint8_t *buffer, size_t len, uint8_t rx_port, uint8_t tx_port,
                            TcpEndpoint &endpoint) -> Connection * override {
         if (num_connections >= S) {
-            return nullptr;
+            error("cannot create new connection: maximum number of specified connections was already created");
         }
 
         return new(reinterpret_cast<Connection *>(connections) + num_connections++) Connection(buffer, len, rx_port,
@@ -45,6 +45,6 @@ private:
     size_t num_connections{};
 };
 
-}
+}  // namespace space_tcp
 
 #endif //SPACE_TCP_CONNECTION_MANAGER_HPP
