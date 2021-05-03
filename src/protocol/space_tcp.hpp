@@ -14,6 +14,22 @@
 
 namespace space_tcp {
 
+enum class Flag {
+    NoFlags = 0x0,
+    Syn = 0x1,
+    Ack = 0x2,
+    Rst = 0x4,
+    Fin = 0x8,
+};
+
+inline auto operator|(Flag a, Flag b) -> Flag {
+    return static_cast<Flag>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+
+inline auto operator&(Flag a, Flag b) -> Flag {
+    return static_cast<Flag>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
+}
+
 class SpaceTcpPacket : public Protocol {
 public:
     static auto create_unchecked(uint8_t *buffer, size_t len) -> SpaceTcpPacket {
@@ -28,8 +44,8 @@ public:
         return static_cast<uint8_t>(buffer[0] & 0xf);
     }
 
-    auto flags() -> uint8_t {
-        return buffer[1];
+    auto flags() -> Flag {
+        return static_cast<Flag>(buffer[1]);
     }
 
     auto src_port() -> uint16_t {
@@ -44,16 +60,20 @@ public:
         return ntohs((buffer[7] << 8) + buffer[6]);
     }
 
-    auto size() -> uint16_t {
+    auto acknowledgment_number() -> uint16_t {
         return ntohs((buffer[9] << 8) + buffer[8]);
     }
 
+    auto size() -> uint16_t {
+        return ntohs((buffer[11] << 8) + buffer[10]);
+    }
+
     auto hmac() -> uint8_t * {
-        return buffer + 10;
+        return buffer + 12;
     }
 
     auto payload() -> uint8_t * {
-        return buffer + 42;
+        return buffer + 44;
     }
 
     auto set_version(uint8_t version) {
@@ -64,8 +84,8 @@ public:
         buffer[0] = (version() << 4) + msg_type;
     }
 
-    auto set_flags(uint8_t flags) {
-        buffer[1] = flags;
+    auto set_flags(Flag flags) {
+        buffer[1] = static_cast<uint8_t>(flags);
     }
 
     auto set_src_port(uint16_t src_port) {
@@ -89,15 +109,22 @@ public:
         buffer[7] = static_cast<uint8_t>(sequence_number >> 8);
     }
 
+    auto set_acknowledgment_number(uint16_t acknowledgment_number) {
+        acknowledgment_number = htons(acknowledgment_number);
+
+        buffer[8] = static_cast<uint8_t>(acknowledgment_number);
+        buffer[9] = static_cast<uint8_t>(acknowledgment_number >> 8);
+    }
+
     auto set_size(uint16_t size) {
         size = htons(size);
 
-        buffer[8] = static_cast<uint8_t>(size);
-        buffer[9] = static_cast<uint8_t>(size >> 8);
+        buffer[10] = static_cast<uint8_t>(size);
+        buffer[11] = static_cast<uint8_t>(size >> 8);
     }
 
     auto set_hmac(const uint8_t hash[32]) {
-        auto data = buffer + 10;
+        auto data = buffer + 12;
 
         for (auto i = 0; i < 32; i++) {
             data[i] = hash[i];
@@ -105,9 +132,9 @@ public:
     }
 
     auto set_payload(const uint8_t *payload, size_t len) {
-        if (42 + len > this->len) {
+        if (44 + len > this->len) {
             warn("payload exceeds buffer size and will be truncated");
-            len = this->len - 42;
+            len = this->len - 44;
         }
 
         set_size(static_cast<uint16_t>(len));
@@ -122,9 +149,9 @@ public:
         auto offset = size();
         auto pad = static_cast<uint8_t>(16 - (offset % 16));
 
-        if (offset + pad + 42 > len) {
+        if (offset + pad + 44 > len) {
             warn("padded payload exceeds buffer size, payload will be truncated");
-            offset = static_cast<uint16_t>(len - 42 - pad);
+            offset = static_cast<uint16_t>(len - 44 - pad);
         }
 
         for (auto i = 0; i < pad; i++) {
@@ -150,14 +177,14 @@ public:
         auto seq = sequence_number();
 
         // message IV depends on sequence number
-        iv[0] += seq >> 8;
-        iv[1] += seq;
+        iv[0] ^= seq >> 8;
+        iv[1] ^= seq;
 
         aes.init(key, iv);
 
         // reset IV to previous value
-        iv[0] -= seq >> 8;
-        iv[1] -= seq;
+        iv[0] ^= seq >> 8;
+        iv[1] ^= seq;
 
         aes.encrypt_cbc(payload(), size());
     }
@@ -167,14 +194,14 @@ public:
         auto seq = sequence_number();
 
         // message IV depends on sequence number
-        iv[0] += seq >> 8;
-        iv[1] += seq;
+        iv[0] ^= seq >> 8;
+        iv[1] ^= seq;
 
         aes.init(key, iv);
 
         // reset IV to previous value
-        iv[0] -= seq >> 8;
-        iv[1] -= seq;
+        iv[0] ^= seq >> 8;
+        iv[1] ^= seq;
 
         aes.decrypt_cbc(payload(), size());
     }
@@ -185,12 +212,12 @@ public:
             return false;
         }
 
-        if (42 > this->len) {
+        if (44 > this->len) {
             warn("S3TP packet with truncated header");
             return false;
         }
 
-        if (42 + size() > this->len) {
+        if (44 + size() > this->len) {
             warn("S3TP packet with truncated payload");
             return false;
         }
@@ -212,7 +239,7 @@ public:
         zero_hmac();
 
         auto hmac = space_tcp::Hmac::create(key, len);
-        hmac.sha256_finalize(this->buffer, 42 + size());
+        hmac.sha256_finalize(this->buffer, 44 + size());
 
         set_hmac(hmac.get_digest());
     }
@@ -227,7 +254,7 @@ public:
         zero_hmac();
 
         auto hmac = space_tcp::Hmac::create(key, len);
-        hmac.sha256_finalize(this->buffer, 42 + size());
+        hmac.sha256_finalize(this->buffer, 44 + size());
 
         set_hmac(hash);
 
@@ -243,14 +270,15 @@ public:
     auto initialize() {
         set_version(0x1);
         set_msg_type(0x1);
-        set_flags(0x0); // no flags set by default
+        set_flags(Flag::NoFlags); // no flags set by default
+        set_acknowledgment_number(0); // no acknowledgment number set by default
         set_size(0); // no payload yet
     }
 
     void print() {
         std::cout << "Version:         " << +version() << std::endl;
         std::cout << "Msg Type:        " << +msg_type() << std::endl;
-        std::cout << "Flags:           " << +flags() << std::endl;
+        std::cout << "Flags:           " << +static_cast<uint8_t>(flags()) << std::endl;
         std::cout << "Source Port:     " << std::dec << +src_port() << std::endl;
         std::cout << "Destination Port:" << std::dec << +dst_port() << std::endl;
         std::cout << "Sequence Number: " << std::dec << +sequence_number() << std::endl;

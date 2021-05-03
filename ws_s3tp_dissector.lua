@@ -25,14 +25,14 @@ msg_type = ProtoField.uint8( "s3tp.msg_type", "Message Type",     base.DEC, msg_
 flags    = ProtoField.uint8( "s3tp.flags",    "Flags",            base.HEX)
 src_port = ProtoField.uint16("s3tp.src_port", "Source Port",      base.DEC)
 dst_port = ProtoField.uint16("s3tp.dst_port", "Destination Port", base.DEC)
-seq_num  = ProtoField.uint16("s3tp.seq_num",  "Sequence Number",  base.DEC)
+tx_seq_num  = ProtoField.uint16("s3tp.tx_seq_num",  "Sequence Number",  base.DEC)
 size     = ProtoField.uint16("s3tp.size",     "Size",             base.DEC)
 hmac     = ProtoField.none(  "s3tp.hmac",     "HMAC")
 payload  = ProtoField.none(  "s3tp.payload",  "Payload")
 
 s3tp_protocol.fields = { version, msg_type, flags, flag_ack, flag_init,
                          flag_retran, flag_reserved, src_port, dst_port,
-                         seq_num, size, hmac, payload }
+                         tx_seq_num, size, hmac, payload }
 
 function s3tp_protocol.dissector(buffer, pinfo, tree)
   length = buffer:len()
@@ -53,7 +53,7 @@ function s3tp_protocol.dissector(buffer, pinfo, tree)
   local flag_tree = subtree:add(flags, buffer(1, 1))
   subtree:add(src_port, buffer(2,  2))
   subtree:add(dst_port, buffer(4,  2))
-  subtree:add(seq_num,  buffer(6,  2))
+  subtree:add(tx_seq_num,  buffer(6,  2))
   subtree:add(size,     buffer(8,  2))
   subtree:add(hmac,     buffer(10, 32))
   subtree:add(payload,  buffer(42, payload_size))

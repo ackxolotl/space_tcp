@@ -52,9 +52,9 @@ auto TcpEndpoint::send(Connection *connection, const uint8_t *buffer, size_t len
     packet.set_dst_port(connection->dst_port);
     packet.set_sequence_number(connection->seq_num++);
 
-    // Connection state?
-    connection->state = State::SynSent;
-    packet.set_flags(0x1);
+    // connection state?
+    connection->tx_state = State::SynSent;
+    packet.set_flags(Flag::Syn | Flag::Rst);
 
     // set payload
     packet.set_payload(buffer, len);
@@ -74,7 +74,7 @@ auto TcpEndpoint::send(Connection *connection, const uint8_t *buffer, size_t len
     }
 
     // hand packet to network layer
-    network.send(tcp_buffer, 42 + packet.size());
+    network.send(tcp_buffer, 44 + packet.size());
 
     // TODO(hal): check if packet was really sent out
 
