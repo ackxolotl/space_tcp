@@ -83,6 +83,14 @@ sudo iptables -A FORWARD -i tun1 -o tun0 -j ACCEPT
 The `receiver` should now receive packets from the `sender`. Do not forget to
 disable any firewalls on your host!
 
+If packet forwarding does not work, check if the TUN interfaces are down. If so
+run:
+
+```
+sudo ip link set tun0 up
+sudo ip link set tun1 up
+```
+
 ## Traffic monitoring with Wireshark
 
 Run Wireshark on `tun0` or `tun1` to analyse the S3TP packets.
