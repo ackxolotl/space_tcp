@@ -9,7 +9,7 @@ uint8_t tcp_buffer[1u << 11u];
 // memory for receive/transmit window of connections
 uint8_t connection_buffer[1u << 12u];
 
-// connections managed by space TCP endpoint
+// connections managed by S3TP endpoint
 space_tcp::Connections<1> connections;
 
 auto main() -> int {
@@ -23,7 +23,7 @@ auto main() -> int {
             .dest_addr = "10.9.8.7"
     };
 
-    // create TUN interface and space TCP endpoint
+    // create TUN interface and S3TP endpoint
     auto tun_interface = space_tcp::create_tun_interface(tun_buffer, tun_config);
     auto tcp_endpoint = space_tcp::create_tcp_endpoint(tcp_buffer, tun_interface, connections);
 

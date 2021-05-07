@@ -7,15 +7,20 @@
 
 namespace space_tcp {
 
+/// A S3TP endpoint.
 class TcpEndpoint {
 public:
-    // buffer should have the (maximum) size of one S3TP packet
+    /// Creates a new endpoint. Buffer should be at least 572 bytes (maximum
+    /// size of S3TP packets: 44 B header + 512 B payload + 16 B padding).
     static auto create(uint8_t *buffer, size_t len, ConnectionManager *connections, NetworkInterface &nif) -> TcpEndpoint;
 
+    /// Receives data via a S3TP connection.
     auto receive(Connection *connection) -> ssize_t;
 
+    /// Sends data via a S3TP connection.
     auto send(Connection *connection, const uint8_t *buffer, size_t len, size_t timeout) -> ssize_t;
 
+    /// Creates a new connection for this S3TP endpoint.
     auto create_connection(uint8_t *buffer, size_t len, uint8_t rx_port, uint8_t tx_port) -> Connection *;
 
 private:

@@ -17,6 +17,7 @@
 
 namespace space_tcp {
 
+/// Config struct for TUN interface.
 struct tun_config {
     ssize_t timeout{5000};
     const std::string &dev_name{};
@@ -25,6 +26,7 @@ struct tun_config {
     // TODO(hal): add all configurable fields
 };
 
+/// IPv4 + Linux TUN interface which implements the NetworkInterface.
 class TunInterface : public NetworkInterface {
 public:
     // buffer should have the (maximum) size of one S3TP packet + header of the network protocol

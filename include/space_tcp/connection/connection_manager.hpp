@@ -3,16 +3,20 @@
 
 namespace space_tcp {
 
+/// Interface for a connection storage.
 class ConnectionManager {
 public:
     virtual ~ConnectionManager() = default;
 
+    /// Returns the specified connection.
     virtual auto get_connection(size_t i) -> Connection * = 0;
 
+    /// Creates a connection in the connection storage.
     virtual auto create_connection(uint8_t *buffer, size_t len, uint8_t rx_port, uint8_t tx_port,
                                    TcpEndpoint &endpoint) -> Connection * = 0;
 };
 
+/// Concrete implementation of connection storage. Stores `S` connections in its memory.
 template<typename std::size_t S>
 class alignas(Connection) Connections : public ConnectionManager {
 public:

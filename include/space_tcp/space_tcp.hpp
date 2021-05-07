@@ -17,6 +17,7 @@ namespace space_tcp {
 
 #ifndef __rodos__
 
+/// Creates a TUN interface.
 template<typename std::size_t S>
 auto create_tun_interface(uint8_t (&buffer)[S], const tun_config& config) -> TunInterface {
     return TunInterface::create(&*buffer, S, config);
@@ -31,11 +32,13 @@ auto create_topic_socket(uint8_t (&buffer)[S]) {
 
 #endif
 
+/// Creates a S3TP endpoint.
 template<typename std::size_t S, std::size_t C>
 auto create_tcp_endpoint(uint8_t (&buffer)[S], NetworkInterface &network, Connections<C> &connections) -> TcpEndpoint {
     return TcpEndpoint::create(&*buffer, S, &connections, network);
 }
 
+/// Creates a connection for a S3TP endpoint.
 template<typename std::size_t S>
 auto create_connection(uint8_t (&buffer)[S], uint8_t rx_port, uint8_t tx_port, TcpEndpoint &endpoint) -> Connection * {
     return endpoint.create_connection(buffer, S, rx_port, tx_port);

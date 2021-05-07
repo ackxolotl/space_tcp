@@ -12,19 +12,30 @@ class TcpEndpoint;
 template<typename std::size_t S>
 class Connections;
 
+/// Connection states.
 enum class State {
+    /// Uninitialized connection.
     Closed,
+    /// Listening connection.
     Listen,
+    /// Open connection request from this host.
     SynSent,
+    /// Half-open connection waiting for ACK from remote host.
     SynReceived,
+    /// Established connection.
     Established,
+    /// Closed connection on this host.
     FinWait,
     Closing,
+    /// Closing was acknowledged by remote host.
     TimeWait,
+    /// Remote host closed the connection.
     CloseWait,
+    /// Connection closed after remote host closed it already.
     LastAck,
 };
 
+/// A connection.
 class Connection {
     template<typename std::size_t S>
     friend class Connections;
@@ -45,6 +56,7 @@ public:
     }
     */
 
+    /// Receive method of connection. Calls receive on the endpoint.
     template<typename std::size_t T>
     auto receive(uint8_t (&buffer)[T], size_t len = 0, size_t timeout = DEFAULT_TIMEOUT) -> ssize_t {
         // repeatedly call receive on endpoint until timeout
@@ -66,6 +78,7 @@ public:
         return len;
     }
 
+    /// Send method of connection. Calls send on the endpoint.
     template<typename std::size_t T>
     auto send(const uint8_t (&buffer)[T], size_t len = 0, size_t timeout = DEFAULT_TIMEOUT) -> ssize_t {
         if (len > T) {
