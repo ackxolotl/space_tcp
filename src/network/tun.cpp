@@ -126,10 +126,7 @@ auto TunInterface::send(const uint8_t *buffer, size_t len) -> ssize_t {
     auto packet = Ipv4Packet::create_unchecked(tun_buffer, buffer_len);
 
     // initialize header of IPv4 packet
-    packet.initialize();
-    packet.set_identification(identification++);
-    packet.set_src_ip(src_addr);
-    packet.set_dst_ip(dst_addr);
+    packet.initialize(identification++, src_addr, dst_addr);
 
     // set payload
     packet.set_payload(buffer, len);

@@ -46,11 +46,7 @@ auto TcpEndpoint::send(Connection *connection, const uint8_t *buffer, size_t len
     // create S3TP packet in transmit buffer
     auto packet = SpaceTcpPacket::create_unchecked(tcp_buffer, buffer_len);
 
-    // initialize header of S3TP packet
-    packet.initialize();
-    packet.set_src_port(connection->src_port);
-    packet.set_dst_port(connection->dst_port);
-    packet.set_sequence_number(connection->seq_num++);
+    packet.initialize(connection->src_port, connection->dst_port, connection->seq_num++);
 
     // connection state?
     connection->tx_state = State::SynSent;

@@ -56,12 +56,12 @@ TEST_F(S3tpTest, DestinationPort) {
 }
 
 TEST_F(S3tpTest, SequenceNumber) {
-    EXPECT_EQ(0xeeff, packet_1.sequence_number());
+    EXPECT_EQ(0xeeff, packet_1.seq_num());
 }
 
 TEST_F(S3tpTest, AcknowledgmentNumber) {
-    EXPECT_EQ(0x1122, packet_1.acknowledgment_number());
-    EXPECT_EQ(0x3344, packet_2.acknowledgment_number());
+    EXPECT_EQ(0x1122, packet_1.ack_num());
+    EXPECT_EQ(0x3344, packet_2.ack_num());
 }
 
 TEST_F(S3tpTest, Size) {
@@ -124,13 +124,13 @@ TEST_F(S3tpTest, SetDestinationPort) {
 }
 
 TEST_F(S3tpTest, SetSequenceNumber) {
-    packet_1.set_sequence_number(0x5432);
-    EXPECT_EQ(0x5432, packet_1.sequence_number());
+    packet_1.set_seq_num(0x5432);
+    EXPECT_EQ(0x5432, packet_1.seq_num());
 }
 
 TEST_F(S3tpTest, SetAcknowledgmentNumber) {
-    packet_1.set_acknowledgment_number(0x6543);
-    EXPECT_EQ(0x6543, packet_1.acknowledgment_number());
+    packet_1.set_ack_num(0x6543);
+    EXPECT_EQ(0x6543, packet_1.ack_num());
 }
 
 TEST_F(S3tpTest, SetSize) {

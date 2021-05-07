@@ -3,6 +3,7 @@
 
 namespace space_tcp {
 
+/// Abstract class for protocol implementations.
 class Protocol {
 public:
     virtual ~Protocol() = default;
