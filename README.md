@@ -36,6 +36,15 @@ make
 
 Doxygen documentation can be found in `build/doc/html/index.html`.
 
+## Before deployment
+
+Replace the keys and the AES-IV in `include/space_tcp/endpoint.hpp` with random
+bytes. A shell script is provided to generate new keys:
+
+```
+./replace_keys.sh
+```
+
 ## Usage
 
 There are two example applications included for Linux, a packet sender and a
