@@ -1,10 +1,10 @@
 #ifndef SPACE_TCP_IP_PACKET_HPP
 #define SPACE_TCP_IP_PACKET_HPP
 
-#include <arpa/inet.h>
-
-#include "space_tcp/log.hpp"
 #include "protocol.hpp"
+#include "space_tcp/log.hpp"
+
+#include <arpa/inet.h>
 
 namespace space_tcp {
 

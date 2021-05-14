@@ -1,10 +1,10 @@
 #ifndef SPACE_TCP_HPP
 #define SPACE_TCP_HPP
 
-#include <cstdint>
-
 #include "network/tun.hpp"
 #include "endpoint.hpp"
+
+#include <cstdint>
 
 #ifndef __rodos__
 

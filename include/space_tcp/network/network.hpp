@@ -2,6 +2,7 @@
 #define SPACE_TCP_NETWORK_HPP
 
 #include <unistd.h>
+#include <cstdint>
 
 namespace space_tcp {
 

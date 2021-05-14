@@ -1,16 +1,16 @@
 #ifndef SPACE_TCP_SPACE_TCP_PACKET_HPP
 #define SPACE_TCP_SPACE_TCP_PACKET_HPP
 
+#include "crypto/aes128.hpp"
+#include "crypto/hmac.hpp"
+#include "space_tcp/log.hpp"
+#include "protocol.hpp"
+
 #ifndef __rodos__
 
 #include <arpa/inet.h>
 
 #endif
-
-#include "crypto/aes128.hpp"
-#include "crypto/hmac.hpp"
-#include "space_tcp/log.hpp"
-#include "protocol.hpp"
 
 namespace space_tcp {
 

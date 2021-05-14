@@ -3,7 +3,6 @@
 
 #include <cstdint>
 
-
 namespace space_tcp {
 
 /// Class with functions to generate random numbers.

@@ -2,7 +2,6 @@
 
 #include <random>
 
-
 // TODO: implement for RODOS
 
 namespace space_tcp {

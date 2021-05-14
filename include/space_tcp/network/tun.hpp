@@ -1,6 +1,8 @@
 #ifndef SPACE_TCP_TUN_HPP
 #define SPACE_TCP_TUN_HPP
 
+#include "network.hpp"
+
 #include <cstring>
 #include <iostream>
 #include <utility>
@@ -12,8 +14,6 @@
 #include <unistd.h>
 
 #include <arpa/inet.h>
-
-#include "network.hpp"
 
 namespace space_tcp {
 

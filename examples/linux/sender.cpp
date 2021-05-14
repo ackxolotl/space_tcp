@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "space_tcp/space_tcp.hpp"
 
 // memory for TUN interface and S3TP endpoint for internal operations

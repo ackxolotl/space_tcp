@@ -1,8 +1,8 @@
+#include "space_tcp/endpoint.hpp"
 #include "protocol/space_tcp.hpp"
 #include "space_tcp/connection/connection.hpp"
 #include "space_tcp/connection/connection_manager.hpp"
 #include "space_tcp/network/network.hpp"
-#include "space_tcp/endpoint.hpp"
 
 namespace space_tcp {
 

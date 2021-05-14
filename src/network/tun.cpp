@@ -1,6 +1,9 @@
+#include "space_tcp/network/tun.hpp"
+#include "space_tcp/log.hpp"
+#include "protocol/ipv4.hpp"
+#include "space_tcp/space_tcp.hpp"
+
 #include <cstring>
-#include <iostream>
-#include <utility>
 
 #include <fcntl.h>
 #include <linux/if.h>
@@ -9,11 +12,6 @@
 #include <unistd.h>
 
 #include <arpa/inet.h>
-
-#include "space_tcp/log.hpp"
-#include "space_tcp/network/network.hpp"
-#include "protocol/ipv4.hpp"
-#include "space_tcp/space_tcp.hpp"
 
 namespace space_tcp {
 
