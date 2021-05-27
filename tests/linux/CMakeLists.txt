@@ -1,3 +1,13 @@
+# Tests for ring.hpp
+add_executable(ring ring.cpp)
+target_link_libraries(ring gtest gtest_main Threads::Threads space_tcp)
+add_test(NAME ring COMMAND ring)
+
+# Tests for segment.hpp
+add_executable(segment segment.cpp)
+target_link_libraries(segment gtest gtest_main Threads::Threads space_tcp)
+add_test(NAME segment COMMAND segment)
+
 # Tests for crypto/aes128.hpp
 add_executable(aes128 aes128.cpp)
 target_link_libraries(aes128 gtest gtest_main Threads::Threads space_tcp)

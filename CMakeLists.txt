@@ -4,7 +4,7 @@ project(space_tcp
         DESCRIPTION "S3TP - a simple stupid satellite transport protocol"
         LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 
 add_compile_options(
         -Wall
@@ -23,7 +23,7 @@ add_library(${PROJECT_NAME} src/crypto/aes128.cpp src/network/tun.cpp src/endpoi
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
 # link space_tcp with external dependencies
-target_link_libraries(${PROJECT_NAME} tiny-aes)
+target_link_libraries(${PROJECT_NAME} PRIVATE tiny-aes)
 
 # examples
 add_subdirectory(examples/linux)

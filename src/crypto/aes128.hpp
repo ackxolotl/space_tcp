@@ -7,8 +7,8 @@
 namespace space_tcp {
 
 struct aes128_ctx {
-    uint8_t round_key[176];
-    uint8_t iv[16];
+    uint8_t round_key[176]{};
+    uint8_t iv[16]{};
 };
 
 class Aes128 {

@@ -12,7 +12,7 @@ class TcpEndpoint {
 public:
     /// Creates a new endpoint. Buffer should be at least 572 bytes (maximum
     /// size of S3TP packets: 44 B header + 512 B payload + 16 B padding).
-    static auto create(uint8_t *buffer, size_t len, ConnectionManager *connections, NetworkInterface &nif) -> TcpEndpoint;
+    static auto create(uint8_t *buffer, size_t len, ConnectionManager &connections, NetworkInterface &network) -> TcpEndpoint;
 
     /// Receives data via a S3TP connection.
     auto receive(Connection *connection) -> ssize_t;
@@ -24,7 +24,7 @@ public:
     auto create_connection(uint8_t *buffer, size_t len, uint8_t rx_port, uint8_t tx_port) -> Connection *;
 
 private:
-    TcpEndpoint(uint8_t *buffer, size_t len, ConnectionManager *connections, NetworkInterface &network) : tcp_buffer{
+    TcpEndpoint(uint8_t *buffer, size_t len, ConnectionManager &connections, NetworkInterface &network) : tcp_buffer{
             buffer}, buffer_len{len}, connections{connections}, network{network} {};
 
     uint8_t *tcp_buffer;
@@ -38,7 +38,7 @@ private:
     uint8_t aes_iv[16]{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
 
     // list of connections
-    ConnectionManager *connections;
+    ConnectionManager &connections;
 
     NetworkInterface &network;
 };

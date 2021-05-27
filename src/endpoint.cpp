@@ -7,8 +7,8 @@
 namespace space_tcp {
 
 // buffer should have the (maximum) size of one S3TP packet
-auto TcpEndpoint::create(uint8_t *buffer, size_t len, ConnectionManager *connections, NetworkInterface &nif) -> TcpEndpoint {
-    return {buffer, len, connections, nif};
+auto TcpEndpoint::create(uint8_t *buffer, size_t len, ConnectionManager &connections, NetworkInterface &network) -> TcpEndpoint {
+    return {buffer, len, connections, network};
 }
 
 auto TcpEndpoint::receive(Connection *connection) -> ssize_t {
@@ -78,7 +78,7 @@ auto TcpEndpoint::send(Connection *connection, const uint8_t *buffer, size_t len
 }
 
 auto TcpEndpoint::create_connection(uint8_t *buffer, size_t len, uint8_t rx_port, uint8_t tx_port) -> Connection * {
-    return connections->create_connection(buffer, len, rx_port, tx_port, *this);
+    return connections.create_connection(buffer, len, rx_port, tx_port, *this);
 }
 
 }  // namespace space_tcp
