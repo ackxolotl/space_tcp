@@ -5,7 +5,6 @@
 
 namespace space_tcp {
 
-/// Class with functions to generate random numbers. FIXME
 class RingBuffer {
 public:
     /// Creates a new ring buffer.
@@ -13,17 +12,25 @@ public:
         return {buffer, len};
     }
 
+    /// Returns the number of free bytes in the buffer.
     [[nodiscard]] auto free_space() const -> size_t {
         return (tail == head && !full) ? len : (tail - head) % len;
     }
 
+    /// Returns the number of used bytes in the buffer.
     [[nodiscard]] auto used_space() const -> size_t {
         return len - free_space();
     }
 
+    /// Returns whether the ring buffer is empty.
+    [[nodiscard]] auto empty() const -> bool {
+        return free_space() == len;
+    }
+
+    /// Pushes data to the ring buffer.
     auto push_back(const uint8_t *data, size_t len, size_t offset = 0) -> ssize_t {
         if (!data || free_space() == 0) {
-            // amount of data or offset exceeds free space for producer or nullptr
+            // nullptr or no free space
             return -1;
         }
 
@@ -53,6 +60,7 @@ public:
         return len;
     }
 
+    /// Pops data from the ring buffer.
     auto pop_front(uint8_t *data, size_t len) -> ssize_t {
         if (len > used_space()) {
             len = used_space();
@@ -74,6 +82,7 @@ public:
         return len;
     }
 
+    /// Advances the head index of the ring buffer.
     auto advance_head(size_t bytes) -> bool {
         if (bytes > free_space()) {
             return false;
@@ -84,22 +93,19 @@ public:
         return true;
     }
 
-    // FIXME(hal): DELETE
-    auto data(size_t offset = 0) -> const uint8_t * {
-        auto index = (tail + offset) % len;
-        return (buffer + index);
-    }
+    /// Copies data from the ring buffer to `buffer`.
+    auto copy(uint8_t *buffer, size_t len, size_t offset = 0) -> size_t {
+        len = (len + offset > used_space()) ? used_space() : len;
 
-    [[nodiscard]] auto get_buffer() const -> uint8_t * {
-        return buffer;
-    }
+        auto index = (tail + offset) % this->len;
 
-    [[nodiscard]] auto get_len() const -> size_t {
+        for (auto i = 0; i < len; i++) {
+            buffer[i] = this->buffer[index];
+            index = (index + 1) % this->len;
+        }
+
         return len;
     }
-
-    /// Generate a random number in range [from, to].
-    //static auto generate_random_number(uint16_t from, uint16_t to) -> uint16_t;
 
 private:
     RingBuffer(uint8_t *buffer, size_t len) : buffer{buffer}, len{len} {};

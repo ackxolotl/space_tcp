@@ -56,7 +56,7 @@ TEST(RingTest, PushData) {
     uint8_t data[] = "some data";
 
     EXPECT_EQ(2, ring.push_back(data, 2));
-    EXPECT_EQ('o', ring.data()[1]);
+    EXPECT_EQ('o', mem[1]);
 
     uint8_t tmp[4]{0};
 

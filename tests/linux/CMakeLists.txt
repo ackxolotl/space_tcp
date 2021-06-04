@@ -32,3 +32,8 @@ add_test(NAME ipv4 COMMAND ipv4)
 add_executable(s3tp space_tcp.cpp)
 target_link_libraries(s3tp gtest gtest_main Threads::Threads space_tcp)
 add_test(NAME s3tp COMMAND s3tp)
+
+# Tests for endpoint.cpp
+add_executable(endpoint endpoint.cpp)
+target_link_libraries(endpoint gtest gtest_main Threads::Threads space_tcp)
+add_test(NAME endpoint COMMAND endpoint)

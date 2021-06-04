@@ -13,10 +13,10 @@ public:
     virtual ~NetworkInterface() = default;
 
     /// Receive up to `len` bytes into `buffer` from the underlying network.
-    virtual auto receive(uint8_t *buffer, size_t len) -> ssize_t = 0;
+    virtual auto receive(uint8_t *buffer, size_t len, ssize_t timeout) -> ssize_t = 0;
 
     /// Send out `len` bytes from `buffer` via the underlying network.
-    virtual auto send(const uint8_t *buffer, size_t len) -> ssize_t = 0;
+    virtual auto send(const uint8_t *buffer, size_t len, ssize_t timeout) -> ssize_t = 0;
 };
 
 }  // namespace space_tcp

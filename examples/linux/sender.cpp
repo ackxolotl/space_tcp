@@ -24,21 +24,22 @@ auto main() -> int {
     // create a connection
     auto connection = space_tcp::create_connection(connection_buffer, 117, 105, tcp_endpoint);
 
-    uint8_t message_1[] = "some message";
-    uint8_t message_2[] = "another message";
-    uint8_t message_3[] = "yet another message";
+    uint8_t message[] = "aloha";
 
-    for (auto i = 0; i < 120; i++) {
-        // transmit messages
-        connection->send(message_1);
-        sleep(1);
+    connection->send(message);
 
-        connection->send(message_2);
-        sleep(1);
+    // run state machine of stack
+    while (true) {
+        tcp_endpoint.rx(10);
+        tcp_endpoint.tx();
 
-        // send third buffer only partially
-        connection->send(message_3, 3);
-        sleep(1);
+        if (connection->get_state() == space_tcp::State::Established && connection->tx_queue_empty()) {
+            connection->close();
+        }
+
+        if (connection->get_state() == space_tcp::State::Closed) {
+            break;
+        }
     }
 
     return 0;

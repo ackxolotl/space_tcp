@@ -9,7 +9,7 @@ namespace space_tcp {
 class Time {
 public:
     /// Returns milliseconds since the Unix epoch.
-    static auto get_time() -> uint64_t;
+    static auto get_time_in_ms() -> uint64_t;
 };
 
 }  // namespace space_tcp
