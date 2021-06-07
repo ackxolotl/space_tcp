@@ -10,6 +10,8 @@
 #include <unistd.h>
 
 #define WINDOWSIZE 32
+
+// retransmit missing messages after this time (ms)
 #define RETRANSMISSION_TIMEOUT 1000
 
 
@@ -54,7 +56,7 @@ public:
     /// Receive method of connection. Copies previously received data from the
     /// connection receive buffer to `buffer`.
     template<typename std::size_t T>
-    auto receive(uint8_t (&buffer)[T], size_t len = 0, ssize_t timeout = -1) -> ssize_t {
+    auto receive(uint8_t (&buffer)[T], size_t len = 0) -> ssize_t {
         if (len > T) {
             warn("requested receive size exceeds buffer size");
             len = T;
@@ -171,6 +173,8 @@ private:
     uint16_t rx_acked{};                // actually acknowledged sequence number
     uint64_t rx_last_time{};
     uint16_t received_bytes{};
+
+    uint64_t close_at{};                // connection will be closed after this time
 
     // out of order received segments
     Segments<WINDOWSIZE - 1> ooo_segments;

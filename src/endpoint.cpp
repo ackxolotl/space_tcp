@@ -7,6 +7,9 @@
 #define PAYLOAD_SIZE 512
 #define WINDOW_SIZE 32
 
+// cool-off period for closing connections in seconds
+#define TIMEWAIT    10
+
 
 namespace space_tcp {
 
@@ -62,7 +65,7 @@ void TcpEndpoint::rx(ssize_t timeout) {
         }
         case State::Listen: {
             if ((packet.flags() & Flag::Syn) != Flag::Syn) {
-                break;
+                return;
             }
 
             auto seq_num = packet.seq_num();
@@ -101,6 +104,10 @@ void TcpEndpoint::rx(ssize_t timeout) {
                 return;
             }
 
+            if (connection->tx_unacked >= packet.ack_num() || connection->tx_next_seq_num < packet.ack_num()) {
+                debug("SYN+ACK acknowledges wrong sequence number");
+            }
+
             auto seq_num = packet.seq_num();
 
             auto acknowledged_data = packet.ack_num() - connection->tx_unacked - 1;
@@ -127,17 +134,15 @@ void TcpEndpoint::rx(ssize_t timeout) {
             break;
         }
         case State::SynReceived: {
-            if ((packet.flags() & Flag::Ack) != Flag::Ack) {
-                return;
+            // SYN again? resend SYN+ACK in tx()
+            if ((packet.flags() & Flag::Syn) == Flag::Syn) {
+                break;
             }
 
-            auto acknowledged_data = packet.ack_num() - connection->tx_unacked;
-            connection->transmit_buffer.pop_front(nullptr, acknowledged_data);
-            connection->tx_unacked = packet.ack_num();
+            // else assume that the other side has received our SYN+ACK
+            // but we didn't get the ACK
 
             connection->state = State::Established;
-
-            break;
         }
         case State::Established: {
             if (((packet.flags() & Flag::Ack) == Flag::Ack)) {
@@ -166,6 +171,7 @@ void TcpEndpoint::rx(ssize_t timeout) {
 
                     connection->state = State::LastAck;
 
+                    connection->close_at = Time::get_time_in_ms() + TIMEWAIT * 1000;
                     connection->tx_last_time = Time::get_time_in_ms();
                 } else {
                     packet.set_flags(Flag::Ack);
@@ -184,13 +190,15 @@ void TcpEndpoint::rx(ssize_t timeout) {
                 return;
             }
 
+            if (connection->tx_unacked >= packet.ack_num() || connection->tx_next_seq_num < packet.ack_num()) {
+                debug("FIN+ACK acknowledges wrong sequence number");
+            }
+
             auto seq_num = packet.seq_num();
 
             auto acknowledged_data = packet.ack_num() - connection->tx_unacked - 1;
             connection->transmit_buffer.pop_front(nullptr, acknowledged_data);
 
-            connection->state = State::TimeWait;
-            connection->rx_next_seq_num++;
             connection->tx_unacked += acknowledged_data;
 
             auto ack_num = seq_num + packet.size() + 1;
@@ -203,7 +211,17 @@ void TcpEndpoint::rx(ssize_t timeout) {
             packet.set_ack_num(ack_num);
 
             connection->rx_acked = ack_num;
-            connection->state = State::Closed;
+            connection->state = State::TimeWait;
+
+            break;
+        }
+        case State::TimeWait: {
+            send_packet = true;
+
+            // send ACK on FIN+ACK
+            packet.initialize(connection->src_port, connection->dst_port, connection->tx_next_seq_num);
+            packet.set_flags(Flag::Ack);
+            packet.set_ack_num(connection->rx_acked);
 
             break;
         }
@@ -233,7 +251,7 @@ void TcpEndpoint::rx(ssize_t timeout) {
 
     if (!send_packet) return;
 
-    // pay and encrypt payload if necessary
+    // pay and encrypt payload
     if (packet.size() > 0) {
         packet.pad_payload();
         packet.encrypt_payload(aes_key, aes_iv);
@@ -271,6 +289,11 @@ void TcpEndpoint::tx(ssize_t timeout) {
 
     switch (connection->state) {
         case State::Closed: {
+            if (!connection->tx_data_to_send()) {
+                return;
+            }
+
+            // how much data to transmit?
             auto len = connection->transmit_buffer.used_space();
             len = (len > PAYLOAD_SIZE) ? PAYLOAD_SIZE : len;
 
@@ -299,6 +322,7 @@ void TcpEndpoint::tx(ssize_t timeout) {
                 return;
             }
 
+            // how much data to transmit?
             auto len = connection->transmit_buffer.used_space();
             len = (len > PAYLOAD_SIZE) ? PAYLOAD_SIZE : len;
 
@@ -379,6 +403,11 @@ void TcpEndpoint::tx(ssize_t timeout) {
             packet.initialize(connection->src_port, connection->dst_port, connection->tx_next_seq_num - 1);
             packet.set_ack_num(connection->rx_acked);
             packet.set_flags(Flag::Fin | Flag::Ack);
+
+            if (connection->close_at < Time::get_time_in_ms()) {
+                // cool-off time exceeded, connection closed
+                connection->state = State::Closed;
+            }
 
             break;
         }
