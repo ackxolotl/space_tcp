@@ -326,6 +326,7 @@ public:
         std::cout << "Source Port:     " << std::dec << +src_port() << std::endl;
         std::cout << "Destination Port:" << std::dec << +dst_port() << std::endl;
         std::cout << "Sequence Number: " << std::dec << +seq_num() << std::endl;
+        std::cout << "Acknowl. Number: " << std::dec << +ack_num() << std::endl;
         std::cout << "Size:            " << std::dec << +size() << std::endl;
     }
 

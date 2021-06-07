@@ -46,12 +46,14 @@ void TcpEndpoint::rx(ssize_t timeout) {
     auto connection = connections.find_connection(dst_port, src_port);
 
     if (!connection) {
-        warn("received S3TP packet does not belong to any connection");
+        // send RST since received S3TP does not belong to any connection
 
-        return;
-    }
+        packet.initialize(dst_port, src_port, connection->tx_next_seq_num);
+        packet.set_flags(Flag::Rst);
+        packet.update_hmac(hmac_key, sizeof(hmac_key));
 
-    if (connection->rx_next_seq_num && packet.seq_num() < connection->rx_next_seq_num) {
+        network.send(tcp_buffer, 44 + packet.size(), 10);
+
         return;
     }
 
@@ -59,11 +61,19 @@ void TcpEndpoint::rx(ssize_t timeout) {
 
     switch (connection->state) {
         case State::Closed: {
-            // TODO(hal): send RST
+            send_packet = true;
+
+            // send RST on packets for closed connection
+            packet.initialize(dst_port, src_port, connection->tx_next_seq_num);
+            packet.set_flags(Flag::Rst);
 
             break;
         }
         case State::Listen: {
+            if (connection->rx_next_seq_num && packet.seq_num() < connection->rx_next_seq_num) {
+                return;
+            }
+
             if ((packet.flags() & Flag::Syn) != Flag::Syn) {
                 return;
             }
@@ -100,12 +110,12 @@ void TcpEndpoint::rx(ssize_t timeout) {
             break;
         }
         case State::SynSent: {
-            if ((packet.flags() & (Flag::Syn | Flag::Ack)) != (Flag::Syn | Flag::Ack)) {
+            if (connection->rx_next_seq_num && packet.seq_num() < connection->rx_next_seq_num) {
                 return;
             }
 
-            if (connection->tx_unacked >= packet.ack_num() || connection->tx_next_seq_num < packet.ack_num()) {
-                debug("SYN+ACK acknowledges wrong sequence number");
+            if ((packet.flags() & (Flag::Syn | Flag::Ack)) != (Flag::Syn | Flag::Ack)) {
+                return;
             }
 
             auto seq_num = packet.seq_num();
@@ -134,6 +144,10 @@ void TcpEndpoint::rx(ssize_t timeout) {
             break;
         }
         case State::SynReceived: {
+            if (connection->rx_next_seq_num && packet.seq_num() < connection->rx_next_seq_num) {
+                return;
+            }
+
             // SYN again? resend SYN+ACK in tx()
             if ((packet.flags() & Flag::Syn) == Flag::Syn) {
                 break;
@@ -146,52 +160,77 @@ void TcpEndpoint::rx(ssize_t timeout) {
         }
         case State::Established: {
             if (((packet.flags() & Flag::Ack) == Flag::Ack)) {
-                auto acknowledged_data = packet.ack_num() - connection->tx_unacked;
-                connection->transmit_buffer.pop_front(nullptr, acknowledged_data);
-                connection->tx_unacked = packet.ack_num();
+                // new ACK?
+                if (packet.ack_num() > connection->tx_unacked) {
+                    auto acknowledged_data = packet.ack_num() - connection->tx_unacked;
+                    connection->transmit_buffer.pop_front(nullptr, acknowledged_data);
+                    connection->tx_unacked = packet.ack_num();
+                }
             } else {
                 send_packet = true;
 
                 auto seq_num = packet.seq_num();
                 auto to_ack_num = seq_num + packet.size();
 
-                // get payload data
-                connection->receive_buffer.push_back(packet.payload(), packet.size());
+                if (connection->rx_next_seq_num && seq_num < connection->rx_next_seq_num) {
+                    // received earlier segment, acknowledge last received one
 
-                auto fin = ((packet.flags() & Flag::Fin) == Flag::Fin);
-
-                packet.initialize(connection->src_port, connection->dst_port, connection->tx_next_seq_num);
-
-                if (fin) {
-                    connection->tx_next_seq_num++;
-                    to_ack_num++;
-
-                    // send FIN+ACK on FIN
-                    packet.set_flags(Flag::Fin | Flag::Ack);
-
-                    connection->state = State::LastAck;
-
-                    connection->close_at = Time::get_time_in_ms() + TIMEWAIT * 1000;
-                    connection->tx_last_time = Time::get_time_in_ms();
-                } else {
+                    packet.initialize(connection->src_port, connection->dst_port, connection->tx_next_seq_num);
                     packet.set_flags(Flag::Ack);
+                    packet.set_ack_num(connection->rx_acked);
+                } else if (connection->rx_next_seq_num && seq_num == connection->rx_next_seq_num) {
+                    // next expected segment
+
+                    // get payload data
+                    connection->receive_buffer.push_back(packet.payload(), packet.size());
+
+                    auto fin = ((packet.flags() & Flag::Fin) == Flag::Fin);
+
+                    packet.initialize(connection->src_port, connection->dst_port, connection->tx_next_seq_num);
+
+                    if (fin) {
+                        to_ack_num++;
+
+                        // send FIN+ACK on FIN
+                        packet.set_flags(Flag::Fin | Flag::Ack);
+
+                        connection->state = State::LastAck;
+
+                        connection->close_at = Time::get_time_in_ms() + TIMEWAIT * 1000;
+                        connection->tx_last_time = Time::get_time_in_ms();
+                    } else {
+                        packet.set_flags(Flag::Ack);
+                    }
+
+                    packet.set_ack_num(to_ack_num);
+
+                    connection->rx_acked = to_ack_num;
+                    connection->rx_next_seq_num = to_ack_num;
+                } else {
+                    packet.initialize(connection->src_port, connection->dst_port, connection->tx_next_seq_num);
+                    packet.set_flags(Flag::Ack);
+                    packet.set_ack_num(connection->rx_acked);
                 }
-
-                packet.set_ack_num(to_ack_num);
-
-                connection->rx_acked = to_ack_num;
-                connection->rx_next_seq_num = to_ack_num;
             }
 
             break;
         }
         case State::FinWait: {
-            if ((packet.flags() & (Flag::Fin | Flag::Ack)) != (Flag::Fin | Flag::Ack)) {
+            if (connection->rx_next_seq_num && packet.seq_num() < connection->rx_next_seq_num) {
                 return;
             }
 
-            if (connection->tx_unacked >= packet.ack_num() || connection->tx_next_seq_num < packet.ack_num()) {
-                debug("FIN+ACK acknowledges wrong sequence number");
+            if ((packet.flags() & (Flag::Fin | Flag::Ack)) != (Flag::Fin | Flag::Ack)) {
+                if ((packet.flags() & (Flag::Ack)) != (Flag::Ack)) {
+                    // new ACK?
+                    if (packet.ack_num() > connection->tx_unacked) {
+                        auto acknowledged_data = packet.ack_num() - connection->tx_unacked;
+                        connection->transmit_buffer.pop_front(nullptr, acknowledged_data);
+                        connection->tx_unacked = packet.ack_num();
+                    }
+                }
+
+                return;
             }
 
             auto seq_num = packet.seq_num();
@@ -216,10 +255,18 @@ void TcpEndpoint::rx(ssize_t timeout) {
             break;
         }
         case State::TimeWait: {
+            if (connection->rx_next_seq_num && packet.seq_num() < connection->rx_next_seq_num) {
+                return;
+            }
+
+            if ((packet.flags() & (Flag::Fin | Flag::Ack)) != (Flag::Fin | Flag::Ack)) {
+                return;
+            }
+
             send_packet = true;
 
             // send ACK on FIN+ACK
-            packet.initialize(connection->src_port, connection->dst_port, connection->tx_next_seq_num);
+            packet.initialize(connection->src_port, connection->dst_port, connection->tx_next_seq_num + 1);
             packet.set_flags(Flag::Ack);
             packet.set_ack_num(connection->rx_acked);
 
@@ -232,6 +279,10 @@ void TcpEndpoint::rx(ssize_t timeout) {
             break;
         }
         case State::LastAck: {
+            if (connection->rx_next_seq_num && packet.seq_num() < connection->rx_next_seq_num) {
+                return;
+            }
+
             if ((packet.flags() & Flag::Ack) != Flag::Ack) {
                 return;
             }
@@ -240,9 +291,6 @@ void TcpEndpoint::rx(ssize_t timeout) {
             connection->rx_next_seq_num++;
             connection->tx_unacked++;
 
-            break;
-        }
-        case State::TimeWait: {
             break;
         }
         default:
@@ -273,7 +321,9 @@ void TcpEndpoint::tx(ssize_t timeout) {
 
         next_tx_connection = (next_tx_connection + 1) % num_connections;
 
-        if (conn->tx_data_to_send() || (timer_expired = conn->tx_timer_expired(tx_time)) || conn->to_be_closed()) {
+        timer_expired = conn->tx_timer_expired(tx_time);
+
+        if (conn->tx_data_to_send() || timer_expired || conn->to_be_closed()) {
             connection = conn;
             break;
         }
@@ -293,7 +343,6 @@ void TcpEndpoint::tx(ssize_t timeout) {
                 return;
             }
 
-            // how much data to transmit?
             auto len = connection->transmit_buffer.used_space();
             len = (len > PAYLOAD_SIZE) ? PAYLOAD_SIZE : len;
 
@@ -313,8 +362,6 @@ void TcpEndpoint::tx(ssize_t timeout) {
             break;
         }
         case State::Listen: {
-            // do nothing if we are in a listening state
-
             return;
         }
         case State::SynSent: {
@@ -356,8 +403,12 @@ void TcpEndpoint::tx(ssize_t timeout) {
             break;
         }
         case State::Established: {
+            // timer expired? restart at last unacked byte
+            if (timer_expired) {
+                connection->tx_next_seq_num = connection->tx_unacked;
+            }
+
             if (connection->tx_data_in_flight() >= PAYLOAD_SIZE * WINDOWSIZE) {
-                // tx window full
                 return;
             }
 
@@ -390,6 +441,8 @@ void TcpEndpoint::tx(ssize_t timeout) {
 
             connection->state = State::FinWait;
 
+            connection->close_at = Time::get_time_in_ms() + TIMEWAIT * 1000;
+
             break;
         }
         case State::CloseWait: {
@@ -412,7 +465,12 @@ void TcpEndpoint::tx(ssize_t timeout) {
             break;
         }
         case State::TimeWait: {
-            connection->state = State::Closed;
+            if (connection->close_at < Time::get_time_in_ms()) {
+                // cool-off time exceeded, connection closed
+                connection->state = State::Closed;
+            }
+
+            connection->tx_last_time = Time::get_time_in_ms();
 
             return;
         }
@@ -422,7 +480,6 @@ void TcpEndpoint::tx(ssize_t timeout) {
 
     connection->tx_last_time = tx_time;
 
-    // pad and encrypt payload if necessary
     if (packet.size() > 0) {
         packet.pad_payload();
         packet.encrypt_payload(aes_key, aes_iv);
