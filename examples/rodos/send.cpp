@@ -1,6 +1,13 @@
 #include "rodos.h"
 #include "space_tcp.hpp"
 
+/*
+ * The RODOS example of S3TP is missing since S3TP
+ * is not implemented for RODOS yet. This can be 
+ * done as soon as it is clear which lower level
+ * interfaces the stack will use on RODOS.
+*/
+
 constexpr uint32_t HELLO_WORLD_APPLICATION_ID = 2001;
 
 static Application example("RODOS HelloWorld example", HELLO_WORLD_APPLICATION_ID);
