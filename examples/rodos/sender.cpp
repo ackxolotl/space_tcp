@@ -1,5 +1,5 @@
 #include "rodos.h"
-#include "space_tcp.hpp"
+#include "space_tcp/space_tcp.hpp"
 
 /*
  * The RODOS example of S3TP is missing since S3TP

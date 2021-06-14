@@ -18,19 +18,38 @@ add_compile_options(
 # external dependencies
 add_subdirectory(subprojects/tiny-AES-c)
 
-# space_tcp library
-add_library(${PROJECT_NAME} src/crypto/aes128.cpp src/network/tun.cpp src/endpoint.cpp src/rand.cpp src/time.cpp)
-target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include PUBLIC ${PROJECT_SOURCE_DIR}/src)
+if( CMAKE_TOOLCHAIN_FILE )
+    message("RODOS version of S3TP")
 
-# link space_tcp with external dependencies
-target_link_libraries(${PROJECT_NAME} PRIVATE tiny-aes)
+    # rodos
+    add_subdirectory(subprojects/rodos)
 
-# examples
-add_subdirectory(examples/linux)
+    # space_tcp library
+    add_library(${PROJECT_NAME} src/crypto/aes128.cpp src/endpoint.cpp src/rand.cpp src/time.cpp)
+    target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
-# documentation
-add_subdirectory(doc)
+    # link space_tcp with external dependencies
+    target_link_libraries(${PROJECT_NAME} PRIVATE tiny-aes)
 
-# tests
-enable_testing()
-add_subdirectory(tests)
+    # examples
+    add_subdirectory(examples/rodos)
+else()
+    message("Linux version of S3TP")
+
+    # space_tcp library
+    add_library(${PROJECT_NAME} src/crypto/aes128.cpp src/network/tun.cpp src/endpoint.cpp src/rand.cpp src/time.cpp)
+    target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include PUBLIC ${PROJECT_SOURCE_DIR}/src)
+
+    # link space_tcp with external dependencies
+    target_link_libraries(${PROJECT_NAME} PRIVATE tiny-aes)
+
+    # examples
+    add_subdirectory(examples/linux)
+
+    # documentation
+    add_subdirectory(doc)
+
+    # tests
+    enable_testing()
+    add_subdirectory(tests)
+endif()

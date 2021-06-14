@@ -26,10 +26,20 @@ Run these commands to build the library, example applications, tests and
 documentation:
 
 ```
-mkdir build
-cd build/
+mkdir build-linux
+cd build-linux/
 cmake ..
 make
+```
+
+Run these commands to build the RODOS version of the library and examples on
+x86:
+
+```
+mkdir build-rodos
+cd build-rodos/
+cmake -DCMAKE_TOOLCHAIN_FILE=../subprojects/rodos/cmake/port/linux-x86.cmake -DEXECUTABLE=ON ..
+make all
 ```
 
 ## Documentation
