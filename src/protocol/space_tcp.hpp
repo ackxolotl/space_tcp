@@ -173,15 +173,15 @@ public:
     /// Applies PKCS#7 padding to the payload such that payload size is a
     /// multiple of 16 bytes.
     auto pad_payload() {
-        auto offset = size();
-        auto pad = static_cast<uint8_t>(16 - (offset % 16));
+        size_t offset = size();
+        size_t pad = static_cast<uint8_t>(16 - (offset % 16));
 
         if (offset + pad + 44 > len) {
             warn("padded payload exceeds buffer size, payload will be truncated");
             offset = static_cast<uint16_t>(len - 44 - pad);
         }
 
-        for (auto i = 0; i < pad; i++) {
+        for (size_t i = 0; i < pad; i++) {
             payload()[offset + i] = pad;
         }
 
@@ -253,7 +253,7 @@ public:
             return false;
         }
 
-        if (44 + size() > this->len) {
+        if (static_cast<size_t>(44 + size()) > this->len) {
             warn("S3TP packet with truncated payload");
             return false;
         }

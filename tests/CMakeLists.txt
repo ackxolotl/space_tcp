@@ -82,5 +82,3 @@ add_dependencies(gmock gmock_src)
 
 # Add Linux tests
 add_subdirectory(linux)
-
-# TODO: RODOS?

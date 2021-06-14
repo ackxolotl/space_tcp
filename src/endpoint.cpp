@@ -4,11 +4,11 @@
 #include "space_tcp/connection/connection_manager.hpp"
 #include "space_tcp/network/network.hpp"
 
-#define PAYLOAD_SIZE 512
-#define WINDOW_SIZE 32
+#define PAYLOAD_SIZE    512
+#define WINDOW_SIZE     32
 
 // cool-off period for closing connections in seconds
-#define TIMEWAIT    10
+#define TIMEWAIT        3
 
 
 namespace space_tcp {
@@ -153,18 +153,37 @@ void TcpEndpoint::rx(ssize_t timeout) {
                 break;
             }
 
-            // else assume that the other side has received our SYN+ACK
-            // but we didn't get the ACK
+            // ACK for our SYN+ACK? -> connection established
+            if (((packet.flags() & Flag::Ack) == Flag::Ack)) {
+                if (packet.ack_num() == connection->tx_next_seq_num) {
+                    connection->state = State::Established;
+                    connection->tx_unacked = packet.ack_num();
+                    connection->tx_next_seq_num = packet.ack_num();
+                }
+            }
 
-            connection->state = State::Established;
+            break;
         }
         case State::Established: {
-            if (((packet.flags() & Flag::Ack) == Flag::Ack)) {
+            if (((packet.flags() & (Flag::Syn | Flag::Ack)) == (Flag::Syn | Flag::Ack))) {
+                // old packet that we processed already
+
+                send_packet = true;
+
+                auto seq_num = packet.seq_num();
+                auto ack_num = seq_num + packet.size() + 1;
+
+                // send ACK on SYN+ACK
+                packet.initialize(connection->src_port, connection->dst_port, connection->tx_unacked);
+                packet.set_flags(Flag::Ack);
+                packet.set_ack_num(ack_num);
+            } else if (((packet.flags() & Flag::Ack) == Flag::Ack)) {
                 // new ACK?
                 if (packet.ack_num() > connection->tx_unacked) {
                     auto acknowledged_data = packet.ack_num() - connection->tx_unacked;
                     connection->transmit_buffer.pop_front(nullptr, acknowledged_data);
                     connection->tx_unacked = packet.ack_num();
+                    connection->tx_next_seq_num = packet.ack_num();
                 }
             } else {
                 send_packet = true;
@@ -196,6 +215,8 @@ void TcpEndpoint::rx(ssize_t timeout) {
 
                         connection->state = State::LastAck;
 
+                        connection->tx_next_seq_num++;
+
                         connection->close_at = Time::get_time_in_ms() + TIMEWAIT * 1000;
                         connection->tx_last_time = Time::get_time_in_ms();
                     } else {
@@ -221,13 +242,10 @@ void TcpEndpoint::rx(ssize_t timeout) {
             }
 
             if ((packet.flags() & (Flag::Fin | Flag::Ack)) != (Flag::Fin | Flag::Ack)) {
-                if ((packet.flags() & (Flag::Ack)) != (Flag::Ack)) {
-                    // new ACK?
-                    if (packet.ack_num() > connection->tx_unacked) {
-                        auto acknowledged_data = packet.ack_num() - connection->tx_unacked;
-                        connection->transmit_buffer.pop_front(nullptr, acknowledged_data);
-                        connection->tx_unacked = packet.ack_num();
-                    }
+                if (packet.ack_num() > connection->tx_unacked) {
+                    auto acknowledged_data = packet.ack_num() - connection->tx_unacked;
+                    connection->transmit_buffer.pop_front(nullptr, acknowledged_data);
+                    connection->tx_unacked = packet.ack_num();
                 }
 
                 return;
@@ -272,13 +290,16 @@ void TcpEndpoint::rx(ssize_t timeout) {
 
             break;
         }
-        case State::Closing: {
-            break;
-        }
+        case State::Closing:
         case State::CloseWait: {
             break;
         }
         case State::LastAck: {
+            // FIN again? resend FIN+ACK in tx()
+            if ((packet.flags() & Flag::Fin) == Flag::Fin) {
+                return;
+            }
+
             if (connection->rx_next_seq_num && packet.seq_num() < connection->rx_next_seq_num) {
                 return;
             }
@@ -316,7 +337,7 @@ void TcpEndpoint::tx(ssize_t timeout) {
     auto num_connections = connections.stored_connections();
     auto timer_expired = false;
 
-    for (auto i = 0; i < num_connections; i++) {
+    for (size_t i = 0; i < num_connections; i++) {
         auto conn = connections.get_connection(next_tx_connection);
 
         next_tx_connection = (next_tx_connection + 1) % num_connections;

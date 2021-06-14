@@ -12,7 +12,7 @@ public:
             return -1;
         }
 
-        for (int i = 0; i < len; i++) {
+        for (size_t i = 0; i < len; i++) {
             buffer[i] = this->buffer[i];
         }
 
@@ -20,7 +20,7 @@ public:
     }
 
     auto send(const uint8_t *buffer, size_t len, ssize_t timeout) -> ssize_t override {
-        for (int i = 0; i < len; i++) {
+        for (size_t i = 0; i < len; i++) {
             this->buffer[i] = buffer[i];
         }
 

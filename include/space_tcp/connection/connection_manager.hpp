@@ -45,7 +45,7 @@ public:
     }
 
     auto find_connection(uint16_t src_port, uint16_t dst_port) -> Connection * override {
-        for (auto i = 0; i < num_connections; i++) {
+        for (size_t i = 0; i < num_connections; i++) {
             auto connection = get_connection(i);
 
             if (connection->src_port == src_port && connection->dst_port == dst_port) {

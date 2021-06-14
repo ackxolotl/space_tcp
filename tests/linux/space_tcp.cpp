@@ -169,8 +169,6 @@ TEST_F(S3tpTest, GetAndSetDestinationPort) {
 }
 
 TEST_F(S3tpTest, PadMessage) {
-    auto size = packet_1.size();
-
     packet_1.pad_payload();
 
     EXPECT_EQ(16, packet_1.size());

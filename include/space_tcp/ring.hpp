@@ -42,7 +42,7 @@ public:
         auto cur_head = (head + offset) % this->len;
 
         // copy data to into ring buffer
-        for (auto i = 0; i < len; i++) {
+        for (size_t i = 0; i < len; i++) {
             buffer[cur_head] = data[i];
             cur_head = (cur_head + 1) % this->len;
         }
@@ -67,7 +67,7 @@ public:
         }
 
         if (data) {
-            for (auto i = 0; i < len; i++) {
+            for (size_t i = 0; i < len; i++) {
                 data[i] = buffer[tail];
                 tail = (tail + 1) % this->len;
             }
@@ -99,7 +99,7 @@ public:
 
         auto index = (tail + offset) % this->len;
 
-        for (auto i = 0; i < len; i++) {
+        for (size_t i = 0; i < len; i++) {
             buffer[i] = this->buffer[index];
             index = (index + 1) % this->len;
         }

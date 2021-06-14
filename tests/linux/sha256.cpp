@@ -18,7 +18,6 @@ TEST(Sha256Test, Test0) {
 }
 
 TEST(Sha256Test, Test1) {
-    uint8_t hash[32];
     uint8_t message[] = {'t', 'e', 's', 't'};
 
     auto sha = space_tcp::Sha256::create();

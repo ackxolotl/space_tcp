@@ -101,7 +101,7 @@ public:
 
 private:
     Hmac(const uint8_t *key, size_t len) : sha{Sha256::create()} {
-        int i;
+        size_t i;
         // Prepare the inner hash key block, hashing the key if it's too long.
         if (len <= 64) {
             for (i = 0; i < len; ++i) this->key[i] = static_cast<uint8_t>(key[i] ^ 0x36);

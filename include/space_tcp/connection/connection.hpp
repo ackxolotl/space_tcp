@@ -12,7 +12,7 @@
 #define WINDOWSIZE 32
 
 // retransmit missing messages after this time (ms)
-#define RETRANSMISSION_TIMEOUT 1000
+#define RETRANSMISSION_TIMEOUT 100
 
 
 namespace space_tcp {
@@ -122,7 +122,7 @@ private:
         receive_buffer = RingBuffer::create(buffer, len/2);
         transmit_buffer = RingBuffer::create(buffer + len/2, len/2);
 
-        auto tx = Rng::generate_random_number(0, 0xffff);
+        auto tx = Rng::generate_random_number(0, 0x0100);
         tx_next_seq_num = tx;
         tx_initial_seq_num = tx;
         tx_unacked = tx;
