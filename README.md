@@ -1,7 +1,8 @@
 # S3TP
 
-A new implementation of a simple stupid satellite transport protocol. To be
-continued ...
+A new implementation of the simple stupid satellite transport protocol
+(originally designed for MOVE-II). Re-designed and re-implemented with the
+MOVE-III mission requirements in mind.
 
 ## Build instructions
 
